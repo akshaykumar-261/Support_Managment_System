@@ -5,22 +5,32 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon src/config/server.js",
-    "seed": "node src/dataBase/seeders/departmentSeeder.js",
+    "start": "nodemon config/server.js",
+    "migration": "npx sequelize-cli migration:generate --migrations-path dataBase/migration --name",
+    "run_migration": "npx sequelize-cli db:migrate",
+    "create_seeder": "npx sequelize-cli seed:generate --seeders-path dataBase/seeders --name",
+    "run_seeder": "npx sequelize-cli db:seed --seed",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "crypto": "^1.0.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "http": "^0.0.1-security",
+    "joi": "^18.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.2",
     "mongoose-autopopulate": "^1.2.1",
     "multer": "^2.1.1",
-    "nodemon": "^3.1.14"
+    "mysql2": "^3.22.3",
+    "nodemon": "^3.1.14",
+    "sequelize": "^6.37.8"
   }
 }
