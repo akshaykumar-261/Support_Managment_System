@@ -1,120 +1,37 @@
-import jwt from "jsonwebtoken";
-import EmployeModel from "../models/EmployesModel.js";
-
+import jwt from "jsonwebtoken"
+import User from "../../dataBase/models/user.js";
+import Role from "../../dataBase/models/roles.js";
+import {authMessage} from "../helper/commanMessage.js";
+import {sendResponse} from "../helper/responseHandler.js";
+import { STATUS_CODE } from "../helper/statusCode.js"
 const authorize = async (req, res, next) => {
-  try {
-    /*
-      =========================
-      AUTH HEADER VALIDATION
-      =========================
-    */
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      return res.status(401).json({
-        success: false,
-        message: "Authorization header missing",
-      });
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return sendResponse(res,STATUS_CODE.BAD_REQUEST,authMessage.UN_AUTH)
+        }
+        const token = authHeader.split(" ")[1];
+        const decode = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findOne({
+            where: {
+                id: decode.id,
+                is_active: 1
+            },
+            include: [
+                {
+                    model: Role,
+                    attributes: ["name"],
+                },
+            ],
+        });
+        if (!user) {
+            return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.USER_NOT_FOUND);
+        }
+        req.user = user;
+        next();
+    } catch (error) {
+        console.log("Authorization error", error.message);
+        return sendResponse(res, STATUS_CODE.SERVER_ERROR, authMessage.INVALID);
     }
-
-    /*
-      =========================
-      TOKEN FORMAT VALIDATION
-      =========================
-    */
-    const bearerToken = authHeader.split(" ");
-
-    if (
-      bearerToken.length !== 2 ||
-      bearerToken[0] !== "Bearer"
-    ) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid token format",
-      });
-    }
-
-    const token = bearerToken[1];
-
-    /*
-      =========================
-      VERIFY JWT TOKEN
-      =========================
-    */
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
-
-    /*
-      =========================
-      CHECK USER IN DATABASE
-      =========================
-    */
-    const user = await EmployeModel.findOne({
-      _id: decoded.id,
-      is_active: true,
-      deleted_at: null,
-    })
-      .select("-password -refreshToken")
-      .populate("role", "name");
-
-    /*
-      =========================
-      USER VALIDATION
-      =========================
-    */
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not found or inactive",
-      });
-    }
-
-    /*
-      =========================
-      ATTACH USER TO REQUEST
-      =========================
-    */
-    req.user = user;
-
-    next();
-
-  } catch (error) {
-
-    /*
-      =========================
-      JWT ERROR HANDLING
-      =========================
-    */
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({
-        success: false,
-        message: "Token expired",
-      });
-    }
-
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid token",
-      });
-    }
-
-    /*
-      =========================
-      SERVER ERROR
-      =========================
-    */
-    console.error(
-      `Authorization Middleware Error: ${error.message}`
-    );
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-
+}
 export default authorize;

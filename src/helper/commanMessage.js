@@ -17,6 +17,15 @@ export const userMessage = {
   PASSWORD_RESET_FAILED: "Failed to reset password",
   USER_UPDATED: "User updated successfully",
   USER_DELETED: "User deleted successfully",
-  USER_LIST: "User list retrieved successfully",      
+  USER_LIST: "User list retrieved successfully",
   REQUIRED_FIELDS: "Name, email, and password are required",
-}
+  LOGIN_SUCCESS: "Login successful",
+  REQUIRED_TOKEN: "Refresh token required",
+  INVALID_TOKEN: "token is not valid",
+  NEW_TOKEN:"New access token generated",
+};
+export const authMessage = {
+  USER_NOT_FOUND: "this user not found or inactive",
+  INVALID: "token is not valid",
+  UN_AUTH: "Unauthorize user",
+};

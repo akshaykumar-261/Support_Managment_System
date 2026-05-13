@@ -3,12 +3,6 @@ import { serverFile } from "../src/helper/commanMessage.js";
 
 const startServer = (app) => {
   const envPort = process.env.PORT || 8088;
-
-  const envDB_URL = process.env.DB_URL;
-
-  if (!envDB_URL) {
-    console.error(serverFile.MISSING_URL);
-  }
   sequelize
     .authenticate()
     .then(() => {
