@@ -10,8 +10,8 @@ export default class UserService {
       where: {
         email: email.toLowerCase().trim(),
         deletedAt: null,
-        raw: true,
       },
+      raw: true,
     });
   };
   getUserById = async (id) => {
@@ -19,8 +19,8 @@ export default class UserService {
       where: {
         id: id,
         deletedAt: null,
-        raw: true,
       },
+      raw: true,
     });
   };
   updateUser = async (id, payload) => {
@@ -31,12 +31,12 @@ export default class UserService {
         return user;
     }
     async deleteUserById(id){
-        const payload = { deletedAt: new Date(), is_active: 0 };
+      const payload = { deletedAt: new Date(), is_active: 0 };
         return this.Model.Users.update(payload, { where: { id: id } });
     }
     async getUserList({ offset = 0, limit = 10,role_id,search,name,email,is_active }) {
         const query = {
-            where: { deletedAt: null },
+        where: { deletedAt: null },
             order: [["id", "DESC"]],
             raw: true,
             attributes: {

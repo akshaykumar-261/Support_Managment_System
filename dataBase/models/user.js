@@ -61,7 +61,7 @@ const UserModel = sequelize.define(
       defaultValue: true,
     },
 
-    default_At: {
+    deletedAt: {
       type: DataTypes.DATE,
       defaultValue: null,
     },

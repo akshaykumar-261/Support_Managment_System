@@ -17,5 +17,6 @@ export const userMessage = {
   PASSWORD_RESET_FAILED: "Failed to reset password",
   USER_UPDATED: "User updated successfully",
   USER_DELETED: "User deleted successfully",
-  USER_LIST: "User list retrieved successfully",        
+  USER_LIST: "User list retrieved successfully",      
+  REQUIRED_FIELDS: "Name, email, and password are required",
 }

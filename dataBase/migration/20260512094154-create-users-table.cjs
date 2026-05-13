@@ -73,7 +73,7 @@ module.exports = {
         defaultValue: true,
       },
 
-      default_At: {
+      deletedAt: {
         type: Sequelize.DATE,
         defaultValue: null,
       },
