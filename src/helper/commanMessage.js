@@ -29,3 +29,16 @@ export const authMessage = {
   INVALID: "token is not valid",
   UN_AUTH: "Unauthorize user",
 };
+export const TICKET_MESSAGE = {
+  USER_NOT_FOUND: "You are not user",
+  TICKET_CREATE: "Ticket create successfully",
+  TICKET_NOT_FOUND: "Your Ticket not found",
+  ACCESS_DENIED: "You are not acess",
+  TICKET_CLOSE: "Ticket close successfully",
+  TICKET_FETCHED: "Ticket fetched successfully",
+  ALL_TICKET: "All ticket fetched successfully",
+  TICKET_ASSIGN: "Ticket Assign Successfully",
+  DASHBOARD: "dashBoard fetch successfully",
+  STATUS: "change ticket status successfully",
+  PRIORITY: "change ticket priority successfully"
+}

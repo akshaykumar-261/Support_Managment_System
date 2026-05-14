@@ -1,7 +1,7 @@
 const checkRole = (...allowedRoles) => {
   return (req, res, next) => {
     try {
-      const roleName = req.user.Role?.name;
+      const roleName = req.user.role?.name;
       if (!allowedRoles.includes(roleName)) {
         return res.status(403).json({
           message: `Access Denied. Allowed roles: ${allowedRoles.join(", ")}`,

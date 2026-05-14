@@ -8,42 +8,47 @@ import TicketHistoryModel from "../dataBase/models/ticketHistory.js";
 
 // User Associations
 UserModel.belongsTo(RoleModel, {
-    foreignKey: "role_Id",
+  foreignKey: "role_Id",
 });
 UserModel.belongsTo(DepartmentModel, {
-    foreignKey: "department_Id",
+  foreignKey: "department_Id",
 });
 // Ticket Associations
 TicketModel.belongsTo(DepartmentModel, {
-    foreignKey: "department_Id",
+  foreignKey: "department_Id",
 });
 TicketModel.belongsTo(UserModel, {
-    foreignKey: "current_Agent",
+  foreignKey: "current_Agent",
+  as: "agent",
+});
+TicketModel.belongsTo(UserModel, {
+  foreignKey: "customer_Id",
+  as: "customer",
 });
 // Notification Associations
 NotificationModel.belongsTo(UserModel, {
-    foreignKey: "user_Id",
+  foreignKey: "user_Id",
 });
 // Ticket Message Associations
 TicketMessageModel.belongsTo(TicketModel, {
-    foreignKey: "ticket_Id",
+  foreignKey: "ticket_Id",
 });
 TicketMessageModel.belongsTo(UserModel, {
-    foreignKey: "sender_Id",
+  foreignKey: "sender_Id",
 });
 // Ticket History Associations
 TicketHistoryModel.belongsTo(TicketModel, {
-    foreignKey: "ticket_Id",
+  foreignKey: "ticket_Id",
 });
 TicketHistoryModel.belongsTo(UserModel, {
-    foreignKey: "assign_From",
-    as: "assignFrom",
+  foreignKey: "assign_From",
+  as: "assignFrom",
 });
 TicketHistoryModel.belongsTo(UserModel, {
-    foreignKey: "assign_To",
-    as: "assignTo",
+  foreignKey: "assign_To",
+  as: "assignTo",
 });
 TicketHistoryModel.belongsTo(UserModel, {
-    foreignKey: "assign_By",
-    as: "assignBy",
+  foreignKey: "assign_By",
+  as: "assignBy",
 });

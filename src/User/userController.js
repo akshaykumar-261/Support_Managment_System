@@ -14,15 +14,7 @@ export default class userController {
   }
 
   async userCreate(req, res) {
-    const { name, email, password, address, phone, role, department } =
-      req.body;
-    if (!name || !email || !password) {
-      return sendResponse(
-        res,
-        STATUS_CODE.BAD_REQUEST,
-        userMessage.REQUIRED_FIELDS,
-      );
-    }
+    const { email } = req.body;
     const exitingUser = await this.service.getByEmail(email);
     if (exitingUser) {
       if (req.file) {
@@ -30,19 +22,12 @@ export default class userController {
       }
       return sendResponse(res, STATUS_CODE.BAD_REQUEST, userMessage.USER_EXIST);
     }
-    const hashPassword = await bcrypt.hash(password, 10);
     let profileImage = null;
     if (req.file) {
       profileImage = req.file.path;
     }
     const user = await this.service.createUser({
-      name,
-      email,
-      password: hashPassword,
-      address,
-      phone,
-      role,
-      department,
+      ...req.body,
       profile_Img: profileImage,
     });
     return sendResponse(res, STATUS_CODE.CREATED, userMessage.USER_CREATED, {
@@ -136,20 +121,11 @@ export default class userController {
         userMessage.INVALID_CREDENTIALS,
       );
     }
-    const accessToken = jwt.sign(
-      {
-        id: userInDb.id,
-        role_Id: userInDb.role_Id,
-        email: userInDb.email,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "10m" },
-    );
-    const refreshToken = jwt.sign(
-      { id: userInDb.id },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: "7d" },
-    );
+    const accessToken = commanFunction.generateAccessToken(userInDb);
+    const refreshToken = commanFunction.generateRefreshToken(userInDb);
+    await this.service.updateUser(userInDb.id, {
+      refreshToken,
+    });
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGIN_SUCCESS, {
       accessToken,
       refreshToken,
@@ -180,17 +156,7 @@ export default class userController {
         userMessage.INVALID_TOKEN,
       );
     }
-    const newAccessToken = jwt.sign(
-      {
-        id: user.id,
-        role_Id: user.role_Id,
-        email: user.email,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "15m",
-      },
-    );
+    const newAccessToken = commanFunction.generateAccessToken(user);
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.NEW_TOKEN, {
       newAccessToken,
     });

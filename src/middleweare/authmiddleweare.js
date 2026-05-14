@@ -20,6 +20,7 @@ const authorize = async (req, res, next) => {
             include: [
                 {
                     model: Role,
+                    as:"role",
                     attributes: ["name"],
                 },
             ],

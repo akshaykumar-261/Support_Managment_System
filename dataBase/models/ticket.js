@@ -44,7 +44,9 @@ const TicketModel = sequelize.define(
     current_Agent: {
       type: DataTypes.INTEGER,
     },
-
+    customer_Id: {
+      type: DataTypes.INTEGER,
+    },
     resolve_At: {
       type: DataTypes.DATE,
     },
@@ -55,7 +57,7 @@ const TicketModel = sequelize.define(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export default TicketModel;

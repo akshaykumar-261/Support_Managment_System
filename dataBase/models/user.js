@@ -1,7 +1,6 @@
-
 import { DataTypes } from "sequelize";
 import { sequelize } from "../../config/db.js";
-
+import bcrypt from "bcrypt";
 const UserModel = sequelize.define(
   "users",
   {
@@ -47,7 +46,6 @@ const UserModel = sequelize.define(
     refreshToken: {
       type: DataTypes.TEXT,
     },
-
     role_Id: {
       type: DataTypes.INTEGER,
     },
@@ -68,7 +66,14 @@ const UserModel = sequelize.define(
   },
   {
     timestamps: true,
-  }
+    hooks: {
+      beforeCreate: async (user) => {
+        if (user.password) {
+          user.password = await bcrypt.hash(user.password, 10);
+        }
+       }
+    }
+  },
 );
 
 export default UserModel;

@@ -2,7 +2,7 @@
   "name": "support_mgt_system",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "config/server.js",
   "type": "module",
   "scripts": {
     "start": "nodemon config/server.js",

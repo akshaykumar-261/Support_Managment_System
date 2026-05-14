@@ -22,7 +22,6 @@ const startServer = (app) => {
       .close()
       .then(() => {
         console.log("Database connection closed");
-        process.exit(0);
       })
       .catch((error) => {
         console.error("Database Closing Error:", error.message);
