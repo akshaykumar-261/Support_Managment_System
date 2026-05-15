@@ -1,3 +1,4 @@
+
 export const serverFile = {
   MISSING_URL: "DB_URL is missing in .env file",
   NODE_VERSION: "Node version must be 20 or higher",
@@ -40,5 +41,15 @@ export const TICKET_MESSAGE = {
   TICKET_ASSIGN: "Ticket Assign Successfully",
   DASHBOARD: "dashBoard fetch successfully",
   STATUS: "change ticket status successfully",
-  PRIORITY: "change ticket priority successfully"
+  PRIORITY: "change ticket priority successfully",
+  RE_ASSIGN_TICKET_ASSIGN: "Ticket reAssign Assign Successfully",
+  UPDATE_TICKET_HISTORY: "Ticket history updated successfully",
+  HISTORY_NOT_FOUND:"Ticket history not found",
+  TICKET_HISTORY_FETCHED: "Ticket history fetched successfully",
+  DELETE_TICKET_HISTORY: "History deleted successfully",
+  AGENT_HISTORY: "Agent history fetched successfully",
+  MESSAGE_CREATED: "Message created successfully",
+  MESSAGE_FETCHED: "Message(s) fetched successfully",
+  MESSAGE_NOT_FOUND: "Message not found",
+  MESSAGE_DELETED: "Message deleted successfully",
 }

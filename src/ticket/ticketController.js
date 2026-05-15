@@ -19,7 +19,7 @@ export default class ticketController {
     });
     return sendResponse(
       res,
-      STATUS_CODE.SUCCESS,
+      STATUS_CODE.SUCCESS,  
       TICKET_MESSAGE.TICKET_CREATE,
       { ticket },
     );

@@ -52,3 +52,12 @@ TicketHistoryModel.belongsTo(UserModel, {
   foreignKey: "assign_By",
   as: "assignBy",
 });
+// TicketHistory Department associations (from/to departments)
+TicketHistoryModel.belongsTo(DepartmentModel, {
+  foreignKey: "from_Department",
+  as: "fromDepartment",
+});
+TicketHistoryModel.belongsTo(DepartmentModel, {
+  foreignKey: "to_Department",
+  as: "toDepartment",
+});

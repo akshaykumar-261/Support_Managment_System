@@ -70,20 +70,26 @@ export default class userController {
   }
   async getUserList(req, res) {
     const { page = 1, limit = 10, role_id, name, email, is_active } = req.query;
-    const offset = (page - 1) * limit;
+    const pagignation = commanFunction.getPagination(page, limit);
     const users = await this.service.getUserList({
-      offset: Number(offset),
-      limit: Number(limit),
+      offset: pagignation.offset,
+      limit: pagignation.limit,
       role_id,
       name,
       email,
       is_active,
     });
+    const response = commanFunction.paginationsResponse({
+      count: users.count,
+      rows: users.rows,
+      page: pagignation.page,
+      limit: pagignation.limit,
+    })
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
       userMessage.USER_FETCHED,
-      users,
+      response
     );
   }
   async deleteUser(req, res) {
