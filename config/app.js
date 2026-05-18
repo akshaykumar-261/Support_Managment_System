@@ -1,16 +1,16 @@
 import { sequelize } from "./db.js";
 import { serverFile } from "../src/helper/commanMessage.js";
 
-const startServer = (app) => {
+const startServer = (server) => {
   const envPort = process.env.PORT || 8088;
   sequelize
     .authenticate()
     .then(() => {
       console.log(serverFile.CONNECTION);
-      const server = app.listen(envPort, () => {
+      const start = server.listen(envPort, () => {
         console.log(`Server is running on port ${envPort}`);
       });
-      server.on("error", (error) => {
+      start.on("error", (error) => {
         console.error(serverFile.SERVER_ERROR, error.message);
       });
     })

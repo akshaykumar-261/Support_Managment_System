@@ -2,18 +2,22 @@ import TicketMessageService from "./ticketMessageService.js";
 import { TICKET_MESSAGE } from "../helper/commanMessage.js";
 import { sendResponse } from "../helper/responseHandler.js";
 import { STATUS_CODE } from "../helper/statusCode.js";
+import TicketService from "../ticket/ticketService.js";
 import * as commanFunction from "../../utility/commanFunction.js";
 
 export default class ticketMessageController {
   async init(db) {
     this.service = new TicketMessageService();
+    this.TicketService = new TicketService();
     this.Model = db.models;
     await this.service.init(db);
+    await this.TicketService.init(db);
   }
 
   async createMessage(req, res) {
-    const { ticket_Id } = req.body;
-    const ticket = await this.Model.TicketModel.findByPk(ticket_Id);
+    const { ticket_Id } = req.params;
+    const ticket = await this.TicketService.getTicketByPk(ticket_Id);
+    console.log("==============>", ticket);
     if (!ticket) {
       return sendResponse(
         res,
@@ -23,9 +27,10 @@ export default class ticketMessageController {
     }
     const payload = {
       ...req.body,
-      sender_Id: req.user
+      sender_Id: req.user.id
     };
     const message = await this.service.createMessage(payload);
+    global.io.to(`ticket_${ticket_Id}`).emit("receive_message", message);
     return sendResponse(
       res,
       STATUS_CODE.CREATED,
@@ -33,7 +38,6 @@ export default class ticketMessageController {
       { message },
     );
   }
-
   async getMessagesByTicket(req, res) {
     const { ticket_Id } = req.params;
     const messages = await this.service.getMessagesByTicket(ticket_Id);
@@ -44,7 +48,6 @@ export default class ticketMessageController {
       { messages },
     );
   }
-
   async getSingleMessage(req, res) {
     const { id } = req.params;
     const message = await this.service.getMessageById(id);

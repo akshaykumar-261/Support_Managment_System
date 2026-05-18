@@ -14,6 +14,7 @@ export default class UserService {
       raw: true,
     });
   };
+ 
   getUserById = async (id) => {
     return this.Model.Users.findOne({
       where: {

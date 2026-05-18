@@ -11,6 +11,15 @@ export default class TicketService {
       },
     });
   };
+  getTicketByPk = async (id) => {
+    if (!id) return null;
+    return await this.Model.TicketModel.findOne({
+      where: {
+        id: id,
+      },
+      raw: true,
+    });
+  };
   getByTicketNumber = async (ticket_number) => {
     if (!ticket_number) return null;
     return await this.Model.TicketModel.findOne({

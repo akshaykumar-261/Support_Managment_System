@@ -25,9 +25,9 @@ controller.init({
 });
 
 route.post(
-  "/createMessage",
+  "/sendMessage/:ticket_Id",
   authorize,
-  checkRole("Customer", "Agent"),
+  checkRole("Customer", "Agent","Super Admin"),
   validateRequest(createMessageSchema),
   asyncHandler(controller.createMessage.bind(controller)),
 );

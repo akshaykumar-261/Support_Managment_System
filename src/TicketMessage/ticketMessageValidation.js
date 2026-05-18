@@ -1,7 +1,6 @@
 import Joi from "joi";
 
 export const createMessageSchema = Joi.object({
-  ticket_Id: Joi.number().required(),
   message: Joi.string().required(),
   attachment_Url: Joi.string().optional(),
 });

@@ -5,7 +5,6 @@ import TicketModel from "../dataBase/models/ticket.js";
 import NotificationModel from "../dataBase/models/notification.js";
 import TicketMessageModel from "../dataBase/models/ticketMessage.js";
 import TicketHistoryModel from "../dataBase/models/ticketHistory.js";
-
 // User Associations
 UserModel.belongsTo(RoleModel, {
   foreignKey: "role_Id",
@@ -60,4 +59,7 @@ TicketHistoryModel.belongsTo(DepartmentModel, {
 TicketHistoryModel.belongsTo(DepartmentModel, {
   foreignKey: "to_Department",
   as: "toDepartment",
+});
+UserModel.hasMany(TicketMessageModel, {
+  foreignKey: "sender_Id"
 });
