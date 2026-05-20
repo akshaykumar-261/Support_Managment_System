@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import mongoose from "mongoose";
 import http from "http";
+import cors from "cors";
 import { Server } from "socket.io";
 import socketHandler from "../utility/socketUser.js"
 import startServer from "./app.js";
@@ -12,6 +13,7 @@ import ticketHistoryRoute from "../src/routes/ticketHistoryRoutes.js";
 import ticketMessageRoute from "../src/routes/ticketMessageRoutes.js";
 import "./association.js";
 const app = express();
+app.use(cors());
 app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server,{

@@ -19,8 +19,8 @@ const role = checkRole("Super Admin");
 controller.init({ models: { Users, Roles, Departments } });
 router.post(
   "/create",
-  authorize,
-  role,
+  //authorize,
+  //role,
   uplaod.single("profile_Img"),
   validateRequest(createUserSchema),
   asyncHandler(controller.userCreate.bind(controller)),
