@@ -1,12 +1,13 @@
-import { useState } from 'react'
-import Register from "./beforeAuth/register.jsx"
+import { useState } from "react";
+//import Register from "./beforeAuth/Login.jsx"
+import Practice from "./beforeAuth/Practice.jsx";
 import "./index.css";
 function App() {
   return (
     <>
-    <Register/>
+      <Practice />
     </>
-  )
+  );
 }
 
-export default App
+export default App;

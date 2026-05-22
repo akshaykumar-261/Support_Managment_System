@@ -3,7 +3,9 @@ import { Box, TextField, Button, Typography, Paper, Grid } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import supportImage from "../assets/image1.png";
 import bgImage from "../assets/image copy.png";
-function register() {
+import { useForm } from 'react-hook-form';
+function Login() {
+  const { register, handleSubmit, formState: { errors } } = useForm();
   return (
     <>
       <Grid container>
@@ -61,12 +63,12 @@ function register() {
             >
               <TextField
                 fullWidth
-                label="Email"
+                label="email"
                 margin="normal"
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     "&:hover fieldset": {
-                      borderColor: "#ad3891 !important",
+                      borderColor: "#ad3891 important",
                     },
 
                     // Focus Border
@@ -147,4 +149,4 @@ function register() {
   );
 }
 
-export default register;
+export default Login;
