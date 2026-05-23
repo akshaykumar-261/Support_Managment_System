@@ -7,12 +7,9 @@ import {
   IconButton,
   Typography,
 } from "@mui/material";
-
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
-
 import { textFieldStyles, buttonProperties } from "../styles/authStyle.js";
-
 export const CustomeInput = forwardRef(
   ({ label, type = "text", error, helperText, ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(true);
@@ -28,7 +25,7 @@ export const CustomeInput = forwardRef(
         type={isPassword ? (!showPassword ? "text" : "password") : type}
         size="small"
         inputRef={ref}
-        error={!!error}
+        error={error}
         helperText={helperText}
         sx={{
           ...textFieldStyles,
@@ -37,6 +34,7 @@ export const CustomeInput = forwardRef(
           },
         }}
         slotProps={{
+          htmlInput: props.inputProps,
           input: {
             endAdornment: isPassword && (
               <InputAdornment position="end">
@@ -54,7 +52,6 @@ export const CustomeInput = forwardRef(
 );
 
 CustomeInput.displayName = "CustomeInput";
-
 export const CustomButton = ({ children, type = "button", ...props }) => {
   return (
     <Button type={type} variant="contained" sx={buttonProperties} {...props}>

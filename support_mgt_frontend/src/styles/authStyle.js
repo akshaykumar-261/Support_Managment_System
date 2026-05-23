@@ -20,14 +20,14 @@ export const textFieldStyles = {
 
     /* Input Text Color aur Cursor */
     "& input": {
-      color: "#000",
-      caretColor: "#6D28D9", 
+      color: "#6D28D9",
+      caretColor: "#6D28D9",
     },
   },
 
   /* Label Default */
   "& .MuiInputLabel-root": {
-    color: "#777",
+    color: "#6D28D9",
   },
 
   /* Label Focus - !important lagaya taaki label ka color bhi lock ho jaye */
@@ -38,7 +38,7 @@ export const textFieldStyles = {
   /* Text Selection Color */
   "& input::selection": {
     backgroundColor: "#6D28D9",
-    color: "#fff",
+    color: "#6D28D9",
   },
 };
 export const centerFlex = {
@@ -60,6 +60,7 @@ export const boxProperites = {
 };
 export const rightPannel = {
   backgroundColor: "orange",
+  overflow:"hidden"
 };
 export const imageProperites = {
   width: "100%",
@@ -68,9 +69,9 @@ export const imageProperites = {
 };
 export const buttonProperties = {
   borderRadius: 2,
-  backgroundColor: "#ad3891",
+  backgroundColor: "#6D28D9",
 
   "&:hover": {
-    backgroundColor: "#922f79",
+    backgroundColor: "#0a465c",
   },
 };
