@@ -29,20 +29,17 @@ function Practice() {
     register,
     handleSubmit,
     setError,
-    formState: { errors,isSubmitting},
+    formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(loginSchema) });
   const onSubmit = async (data) => {
     try {
-       console.log("data", data);
-       await new Promise((resolve)=>setTimeout(resolve,3000)) 
-    } catch (error) {
-      
-    }
-   
+      console.log("data", data);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    } catch (error) {}
   };
   return (
     <>
-      <Grid container style={{ height: "100vh"}}>
+      <Grid container style={{ height: "100vh" }}>
         {/* Left Pannel */}
         <Grid
           container
@@ -58,7 +55,7 @@ function Practice() {
               ...boxProperites,
             }}
           >
-            <Stack spacing={5}>
+            <Stack spacing={3}>
               <Box>
                 <SupportLogo />
 
@@ -99,17 +96,32 @@ function Practice() {
                 type="password"
                 inputProps={{ maxLength: 8 }}
               />
+
               <Button
                 variant="contained"
                 type="submit "
                 disabled={isSubmitting}
                 sx={{ ...buttonProperties }}
               >
-                {isSubmitting?"Loading...":"Login"}
+                {isSubmitting ? "Loading..." : "Login"}
               </Button>
               <Link
+                underline="none"
+                href="#"
                 sx={{ color: "#6d28d9" }}
                 component="button"
+                variant="body2"
+                onClick={() => {
+                  console.info("I'm a button.");
+                }}
+              >
+                Forgot Password?
+              </Link>
+              <Link
+                underline="none"
+                sx={{ color: "#6d28d9" }}
+                component="button"
+                href="#"
                 variant="body2"
                 onClick={() => {
                   console.info("I'm a button.");

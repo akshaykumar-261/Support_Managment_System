@@ -1,45 +1,6 @@
 export const textFieldStyles = {
   width: "100%",
 
-  "& .MuiOutlinedInput-root": {
-    /* Default Border */
-    "& fieldset": {
-      borderColor: "#ccc",
-    },
-
-    /* Hover Border - !important lagaya taaki MUI ka black color hat jaye */
-    "&:hover fieldset": {
-      borderColor: "#6D28D9 !important",
-    },
-
-    /* Focus Border - Isko thoda aur specific kiya taaki blue ya koi aur color na aaye */
-    "&.Mui-focused fieldset": {
-      borderColor: "#6D28D9 !important",
-      borderWidth: "2px",
-    },
-
-    /* Input Text Color aur Cursor */
-    "& input": {
-      color: "#6D28D9",
-      caretColor: "#6D28D9",
-    },
-  },
-
-  /* Label Default */
-  "& .MuiInputLabel-root": {
-    color: "#6D28D9",
-  },
-
-  /* Label Focus - !important lagaya taaki label ka color bhi lock ho jaye */
-  "& .MuiInputLabel-root.Mui-focused": {
-    color: "#6D28D9 !important",
-  },
-
-  /* Text Selection Color */
-  "& input::selection": {
-    backgroundColor: "#6D28D9",
-    color: "#6D28D9",
-  },
 };
 export const centerFlex = {
   // backgroundColor: "blue",
@@ -60,7 +21,7 @@ export const boxProperites = {
 };
 export const rightPannel = {
   backgroundColor: "orange",
-  overflow:"hidden"
+  overflow: "hidden",
 };
 export const imageProperites = {
   width: "100%",

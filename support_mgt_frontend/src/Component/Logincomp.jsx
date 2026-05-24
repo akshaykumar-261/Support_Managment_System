@@ -22,6 +22,7 @@ export const CustomeInput = forwardRef(
         fullWidth
         variant="outlined"
         label={label}
+        color="secondary"
         type={isPassword ? (!showPassword ? "text" : "password") : type}
         size="small"
         inputRef={ref}
