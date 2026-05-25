@@ -1,6 +1,7 @@
+import { maxLength } from "zod";
+
 export const textFieldStyles = {
   width: "100%",
-
 };
 export const centerFlex = {
   // backgroundColor: "blue",
@@ -9,15 +10,15 @@ export const centerFlex = {
 };
 export const boxProperites = {
   //  backgroundColor: "yellow",
-  // height: "400px",
-  // width: "400px",
-  padding: "80px",
-
+  // height: "500px",
+   //width: "500px",
+  padding: "30px",
   borderRadius: 3,
   boxShadow: 20,
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
+  overflow:"hidden"
 };
 export const rightPannel = {
   backgroundColor: "orange",
@@ -33,6 +34,6 @@ export const buttonProperties = {
   backgroundColor: "#6D28D9",
 
   "&:hover": {
-    backgroundColor: "#0a465c",
+    backgroundColor: "#5d38ea",
   },
 };

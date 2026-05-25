@@ -69,7 +69,7 @@ const Register = () => {
       .then((d) => {
         console.log(d.data);
         alert(d.data.message);
-        navigate("/login");
+        navigate("/");
       })
       .catch((error) => {
         console.log(error.response?.data);

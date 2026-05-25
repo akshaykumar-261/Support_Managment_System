@@ -17,19 +17,26 @@ export const CustomeInput = forwardRef(
       setShowPassword((prev) => !prev);
     };
     const isPassword = type === "password";
+    const isFile = type === "file";
     return (
       <TextField
         fullWidth
         variant="outlined"
-        label={label}
         color="secondary"
+        label={label}
         type={isPassword ? (!showPassword ? "text" : "password") : type}
         size="small"
         inputRef={ref}
         error={error}
         helperText={helperText}
+        InputLabelProps={isFile ? { shrink: true } : {}} // srink label to top of text box
         sx={{
           ...textFieldStyles,
+          "& .MuiFormHelperText-root": {
+            minHeight: "20px",
+            marginTop: "4px",
+          },
+
           "& .MuiOutlinedInput-root": {
             paddingRight: "10px",
           },

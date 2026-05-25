@@ -8,5 +8,4 @@ export const  loginSchema = z.object({
    password:z
    .string()
     .min(6, "Password must be at least 6")
-    .max(8, "Password maxLength must be 8"),
 })
