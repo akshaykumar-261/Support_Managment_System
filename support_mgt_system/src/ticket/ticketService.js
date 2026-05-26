@@ -86,6 +86,25 @@ export default class TicketService {
       order: [["id", "DESC"]],
     });
   }
+  async getAgentsList(filter = {}) {
+    const where = { is_active: true, deletedAt: null };
+    // allow optional department filter
+    if (filter.department_Id) {
+      where.department_Id = filter.department_Id;
+    }
+    return await this.Model.UserModel.findAll({
+      where,
+      include: [
+        {
+          model: this.Model.RoleModel,
+          where: { name: "Agent" },
+          attributes: ["id", "name"],
+        },
+      ],
+      attributes: ["id", "name", "email", "department_Id", "profile_Img"],
+      order: [["id", "DESC"]],
+    });
+  }
   async dashBoard() {
     const totalTicket = await this.Model.TicketModel.count();
     const openTickets = await this.Model.TicketModel.count({

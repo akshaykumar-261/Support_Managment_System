@@ -1,5 +1,5 @@
 import TicketService from "./ticketService.js";
-import { TICKET_MESSAGE } from "../helper/commanMessage.js";
+import { TICKET_MESSAGE, AGENT_MESSAGE } from "../helper/commanMessage.js";
 import { sendResponse } from "../helper/responseHandler.js";
 import { STATUS_CODE } from "../helper/statusCode.js";
 import * as commanFunction from "../../utility/commanFunction.js";
@@ -99,10 +99,30 @@ export default class ticketController {
     });
     return sendResponse(
       res,
-      STATUS_CODE.BAD_REQUEST,
+      STATUS_CODE.SUCCESS,
       TICKET_MESSAGE.TICKET_ASSIGN,
     );
   }
+
+  async getAgentsList(req, res) {
+    const agents = await this.service.getAgentsList(req.query || {});
+    if (!agents || agents.length === 0) {
+      return sendResponse(
+        res,
+        STATUS_CODE.SUCCESS,
+        AGENT_MESSAGE.AGENTS_LIST_NOT_FOUND,
+        { users: [] },
+      );
+    }
+    return sendResponse(
+      res,
+      STATUS_CODE.SUCCESS,
+      AGENT_MESSAGE.AGENTS_LIST_FETCHED,
+      { users: agents },
+    );
+  }
+ 
+
   async dashboard(req, res) {
     const dashboard = await this.service.dashBoard();
     return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.DASHBOARD,{dashboard});

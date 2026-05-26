@@ -2,7 +2,7 @@ import Joi from "joi";
 
 export const reAssignSchema = Joi.object({
   ticket_Id: Joi.number().required(),
-  assign_To: Joi.number().required(),
+  assign_To: Joi.number().required().optional(),
   assign_From: Joi.number().optional(),
   assign_By: Joi.number().optional(),
   action: Joi.string()

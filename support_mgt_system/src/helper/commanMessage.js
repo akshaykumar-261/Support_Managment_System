@@ -53,3 +53,7 @@ export const TICKET_MESSAGE = {
   MESSAGE_NOT_FOUND: "Message not found",
   MESSAGE_DELETED: "Message deleted successfully",
 }
+export const AGENT_MESSAGE = {
+  AGENTS_LIST_FETCHED: "Agents list fetched successfully",
+  AGENTS_LIST_NOT_FOUND: "No agents found",
+}

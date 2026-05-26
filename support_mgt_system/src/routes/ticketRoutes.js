@@ -51,18 +51,24 @@ route.post(
   asyncHandler(controller.assignTicket.bind(controller)),
 );
 route.get(
+  "/getAgentsList", 
+  authorize, 
+  checkRole("Super Admin"),
+  asyncHandler(controller.getAgentsList.bind(controller))
+);
+route.get(
   "/adminDashBoard",
-  authorize,
+ authorize,
   checkRole("Super Admin"),
   asyncHandler(controller.dashboard.bind(controller)),
 );
-route.put(
-  "/updateTicketStatus/:id",
+route.get(
+  "/getAgentsList",
   authorize,
-  checkRole("Super Admin", "Agent"),
-  validateRequest(updateStatusSchema),
-  asyncHandler(controller.updateStatus.bind(controller)),
+  checkRole("Super Admin"),
+  asyncHandler(controller.getAgentsList.bind(controller)),
 );
+
 route.put(
   "/updateTicketPriority/:id",
   authorize,
