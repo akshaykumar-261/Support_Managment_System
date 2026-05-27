@@ -41,7 +41,7 @@ route.get(
 route.get(
   "/getTicketListByAdmin",
   authorize,
-  checkRole("Super Admin"),
+  checkRole("Super Admin","Agent"),
   asyncHandler(controller.getAllTickets.bind(controller)),
 );
 route.post(
@@ -49,12 +49,6 @@ route.post(
   authorize,
   checkRole("Super Admin"),
   asyncHandler(controller.assignTicket.bind(controller)),
-);
-route.get(
-  "/getAgentsList", 
-  authorize, 
-  checkRole("Super Admin"),
-  asyncHandler(controller.getAgentsList.bind(controller))
 );
 route.get(
   "/adminDashBoard",
@@ -65,7 +59,7 @@ route.get(
 route.get(
   "/getAgentsList",
   authorize,
-  checkRole("Super Admin"),
+  checkRole("Super Admin","Agent"),
   asyncHandler(controller.getAgentsList.bind(controller)),
 );
 
@@ -75,5 +69,12 @@ route.put(
   checkRole("Super Admin", "Agent"),
   validateRequest(prioritySchema),
   asyncHandler(controller.updatePriority.bind(controller)),
+);
+route.put(
+  "/updateTicketStatus/:id",
+  authorize,
+  checkRole("Super Admin", "Agent"),
+  validateRequest(updateStatusSchema),
+  asyncHandler(controller.updateStatus.bind(controller)),
 );
 export default route;

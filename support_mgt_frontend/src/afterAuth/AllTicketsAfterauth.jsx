@@ -16,10 +16,22 @@ import {
   Select,
   MenuItem,
   Stack,
+  IconButton,
+  Menu,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Divider,
 } from "@mui/material";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useNavigate } from "react-router-dom";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import HistoryIcon from "@mui/icons-material/History";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import axiosInstance from "../api/axiosInstance.jsx";
+
 const getColor = (value) => {
   switch (value) {
     case "high":
@@ -46,6 +58,7 @@ const getColor = (value) => {
       return { bg: "#F3F4F6", text: "#6B7280" };
   }
 };
+
 function AllTicketsAfterauth() {
   const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
@@ -53,29 +66,46 @@ function AllTicketsAfterauth() {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(5);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Three-Dots Menu State
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+
+  // History Modal State
+  const [historyLogs, setHistoryLogs] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const token = localStorage.getItem("accessToken");
+  const headers = { Authorization: token ? `Bearer ${token}` : "" };
 
   useEffect(() => {
     const fetchTickets = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("accessToken");
         const params = {};
         if (statusFilter) params.status = statusFilter;
         if (priorityFilter) params.priority = priorityFilter;
+        params.page = page;
+        params.limit = perPage;
+
         const response = await axiosInstance.get(
           "/ticket/getTicketListByAdmin",
           {
-            headers: {
-              Authorization: token ? `Bearer ${token}` : "",
-            },
+            headers: headers,
             params: params,
           },
         );
         if (response.data && response.data.data && response.data.data.tickets) {
-          setTickets(response.data.data.tickets);
+          const ticketsPayload = response.data.data.tickets;
+          setTickets(ticketsPayload.data || []);
+          setTotalPages(ticketsPayload.totalPage || 1);
+          setPerPage(ticketsPayload.perPage || perPage);
           setError(null);
         } else {
-          setError("Data is not valid formate");
+          setError("Data is not valid format");
         }
       } catch (err) {
         console.error("Fetch Tickets Error:", err);
@@ -88,7 +118,24 @@ function AllTicketsAfterauth() {
     };
 
     fetchTickets();
-  }, [statusFilter, priorityFilter]);
+  }, [statusFilter, priorityFilter, page, perPage]);
+
+  // Handle Three-Dots Menu Open
+  const handleMenuOpen = (event, ticketId) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedTicketId(ticketId);
+  };
+
+  // Handle Three-Dots Menu Close
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  // Navigate to Ticket Details Page
+  const handleViewDetail = () => {
+    handleMenuClose();
+    navigate(`/home/ticket-detail/${selectedTicketId}`);
+  };
   return (
     <Box>
       {/* Header Section */}
@@ -98,13 +145,15 @@ function AllTicketsAfterauth() {
 
       {/* Filter Options Section */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 4 }}>
-        {/* Status Filter */}
         <FormControl sx={{ minWidth: 200 }} size="small">
           <InputLabel>Filter by Status</InputLabel>
           <Select
             value={statusFilter}
             label="Filter by Status"
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
           >
             <MenuItem value="">All Statuses</MenuItem>
             <MenuItem value="open">Open</MenuItem>
@@ -113,13 +162,15 @@ function AllTicketsAfterauth() {
           </Select>
         </FormControl>
 
-        {/* Priority Filter */}
         <FormControl sx={{ minWidth: 200 }} size="small">
           <InputLabel>Filter by Priority</InputLabel>
           <Select
             value={priorityFilter}
             label="Filter by Priority"
-            onChange={(e) => setPriorityFilter(e.target.value)}
+            onChange={(e) => {
+              setPriorityFilter(e.target.value);
+              setPage(1);
+            }}
           >
             <MenuItem value="">All Priorities</MenuItem>
             <MenuItem value="low">Low</MenuItem>
@@ -130,6 +181,7 @@ function AllTicketsAfterauth() {
         </FormControl>
       </Stack>
 
+      {/* Main Table Card */}
       <Card
         sx={{
           p: 3,
@@ -182,7 +234,6 @@ function AllTicketsAfterauth() {
                           "&:last-child td, &:last-child th": { border: 0 },
                         }}
                       >
-                        {/* Ticket ID */}
                         <TableCell
                           component="th"
                           scope="row"
@@ -190,10 +241,7 @@ function AllTicketsAfterauth() {
                         >
                           #{row.ticket_number || row.id}
                         </TableCell>
-                        {/* Customer Name (Include se aa raha hai) */}
                         <TableCell>{row.customer?.name || "N/A"}</TableCell>
-
-                        {/* Agent Name (Include se aa raha hai) */}
                         <TableCell>
                           {row.agent?.name ? (
                             <Chip
@@ -207,8 +255,6 @@ function AllTicketsAfterauth() {
                             </Typography>
                           )}
                         </TableCell>
-
-                        {/* Priority Chip */}
                         <TableCell>
                           <Chip
                             label={
@@ -223,8 +269,6 @@ function AllTicketsAfterauth() {
                             }}
                           />
                         </TableCell>
-
-                        {/* Status Chip */}
                         <TableCell>
                           <Chip
                             label={
@@ -241,24 +285,19 @@ function AllTicketsAfterauth() {
                             }}
                           />
                         </TableCell>
-
-                        {/* Action Column */}
                         <TableCell>
-                          <VisibilityIcon
-                            color="primary"
-                            sx={{
-                              cursor: "pointer",
-                              "&:hover": { color: "#6d28d9" },
-                            }}
-                            onClick={() => navigate(`/home/ticket/${row.id}`)}
-                          />
+                          <IconButton
+                            onClick={(e) => handleMenuOpen(e, row.id)}
+                          >
+                            <MoreVertIcon />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     );
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">
                         Koi tickets nahi mile.
                       </Typography>
@@ -270,6 +309,42 @@ function AllTicketsAfterauth() {
           </TableContainer>
         )}
       </Card>
+
+      {/* Pagination Controls */}
+      <Stack
+        direction="row"
+        spacing={2}
+        justifyContent="flex-end"
+        sx={{ mt: 2 }}
+      >
+        <Button
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+        >
+          Prev
+        </Button>
+        <Typography sx={{ alignSelf: "center" }}>
+          Page {page} of {totalPages}
+        </Typography>
+        <Button
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+        >
+          Next
+        </Button>
+      </Stack>
+
+      {/* Action Options Float Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        disableScrollLock
+      >
+        <MenuItem onClick={handleViewDetail} sx={{ gap: 1, color: "#6d28d9" }}>
+          <VisibilityIcon fontSize="small" /> View Ticket Detail
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }

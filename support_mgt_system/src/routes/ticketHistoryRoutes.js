@@ -13,6 +13,7 @@ import {
   updateHistorySchema,
   validateRequest,
 } from "../TicketHistory/ticketHistoryValidation.js";
+import { reAssignSchemaValidated } from "../TicketHistory/ticketHistoryValidation.js";
 import {
   validateParams,
   idParamSchema,
@@ -30,7 +31,7 @@ route.post(
   "/reAssignTicket", // assign ticket to another agent
   authorize,
   role,
-  validateRequest(reAssignSchema),
+  validateRequest(reAssignSchemaValidated),
   asyncHandler(controller.reAssignTicket.bind(controller)),
 );
 route.put(
@@ -50,7 +51,7 @@ route.get(
 route.get(
   "/getTicketList", 
   authorize,
-  role,
+  checkRole("Super Admin","Agent"),
   asyncHandler(controller.getTicketList.bind(controller)),
 );
 route.delete(

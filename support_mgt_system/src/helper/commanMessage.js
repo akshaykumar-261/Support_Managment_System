@@ -21,6 +21,7 @@ export const userMessage = {
   USER_LIST: "User list retrieved successfully",
   REQUIRED_FIELDS: "Name, email, and password are required",
   LOGIN_SUCCESS: "Login successful",
+  LOGOUT_SUCCESS: "Logout successful",
   REQUIRED_TOKEN: "Refresh token required",
   INVALID_TOKEN: "token is not valid",
   NEW_TOKEN:"New access token generated",
@@ -42,7 +43,7 @@ export const TICKET_MESSAGE = {
   DASHBOARD: "dashBoard fetch successfully",
   STATUS: "change ticket status successfully",
   PRIORITY: "change ticket priority successfully",
-  RE_ASSIGN_TICKET_ASSIGN: "Ticket reAssign Assign Successfully",
+  RE_ASSIGN_TICKET_ASSIGN: "Ticket reassigned successfully",
   UPDATE_TICKET_HISTORY: "Ticket history updated successfully",
   HISTORY_NOT_FOUND:"Ticket history not found",
   TICKET_HISTORY_FETCHED: "Ticket history fetched successfully",
@@ -56,4 +57,8 @@ export const TICKET_MESSAGE = {
 export const AGENT_MESSAGE = {
   AGENTS_LIST_FETCHED: "Agents list fetched successfully",
   AGENTS_LIST_NOT_FOUND: "No agents found",
+}
+export const DEPARTMENT_MESSAGE = {
+  DEPARTMENTS_FETCHED: "Departments fetched successfully",
+  DEPARTMENTS_NOT_FOUND: "No departments found",
 }

@@ -38,8 +38,10 @@ function TicketAssignmentPanel() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAgentId, setModalAgentId] = useState("");
   const [submittingId, setSubmittingId] = useState(false);
+
   const token = localStorage.getItem("accessToken");
   const headers = { Authorization: token ? `Bearer ${token}` : "" };
+
   useEffect(() => {
     const loadInitialData = async () => {
       try {
@@ -51,24 +53,28 @@ function TicketAssignmentPanel() {
           { headers },
         );
 
-        if (
-          ticketRes.data?.data?.tickets &&
-          Array.isArray(ticketRes.data.data.tickets)
-        ) {
-          const openTickets = ticketRes.data.data.tickets.filter(
-            (ticket) => ticket.status === "open" || ticket.status === "Open",
-          );
-          setUnassignedTickets(openTickets);
+        // FIXED RESPONSE STRUCTURE PARSING:
+        // Aapke console response pattern ke according -> res.data.data.tickets.data ko target kiya hai
+        let rawTicketsArray = [];
+        if (ticketRes.data?.data?.tickets?.data) {
+          rawTicketsArray = ticketRes.data.data.tickets.data;
+        } else if (Array.isArray(ticketRes.data?.data?.tickets)) {
+          rawTicketsArray = ticketRes.data.data.tickets;
         } else if (Array.isArray(ticketRes.data?.tickets)) {
-          const openTickets = ticketRes.data.tickets.filter(
-            (ticket) => ticket.status === "open" || ticket.status === "Open",
-          );
-          setUnassignedTickets(openTickets);
+          rawTicketsArray = ticketRes.data.tickets;
         }
+
+        // Filtering only OPEN status records safely
+        const openTickets = rawTicketsArray.filter(
+          (ticket) => String(ticket.status).toLowerCase() === "open",
+        );
+        setUnassignedTickets(openTickets);
+
+        // B. Fetch Agents List
         const agentRes = await axiosInstance.get("/ticket/getAgentsList", {
           headers,
         });
-        console.log("Full Agent API Response:", agentRes);
+
         let extractedAgents = [];
         if (
           agentRes.data?.data?.users &&
@@ -81,15 +87,12 @@ function TicketAssignmentPanel() {
           extractedAgents = agentRes.data.data;
         } else if (Array.isArray(agentRes.data)) {
           extractedAgents = agentRes.data;
-        } else {
-          console.error(
-            "Backend se array nahi mila! Response structure galat hai.",
-          );
         }
 
         setAgents(extractedAgents);
       } catch (err) {
-        toast.error("We not found new ticket lists");
+        console.error("Data loading error:", err);
+        toast.error("We could not find new ticket lists.");
       } finally {
         setLoading(false);
       }
@@ -98,7 +101,7 @@ function TicketAssignmentPanel() {
     loadInitialData();
   }, []);
 
-  // 2. Action Menu Handlers (Three Dots)
+  // Action Menu Handlers (Three Dots)
   const handleMenuOpen = (event, ticketId) => {
     setAnchorEl(event.currentTarget);
     setActiveTicketId(ticketId);
@@ -108,7 +111,7 @@ function TicketAssignmentPanel() {
     setAnchorEl(null);
   };
 
-  // 3. Delete Ticket Handler
+  // Delete Ticket Handler
   const handleDeleteTicket = async () => {
     const ticketIdToDelete = activeTicketId;
     handleMenuClose();
@@ -123,21 +126,22 @@ function TicketAssignmentPanel() {
       );
     } catch (err) {
       console.error("Delete Error:", err);
+      // Fallback fallback standard lists matching update
       setUnassignedTickets((prev) =>
         prev.filter((t) => t.id !== ticketIdToDelete),
       );
-      toast.success("Ticket Reomve from the List");
+      toast.success("Ticket Removed from the List");
     }
   };
 
-  // 4. Open Assignment Modal
+  // Open Assignment Modal
   const handleOpenAssignModal = () => {
     setModalAgentId("");
     setIsModalOpen(true);
     handleMenuClose();
   };
 
-  // 5. Submit Assignment to Backend
+  // Submit Assignment to Backend
   const handleModalAssignSubmit = async () => {
     if (!modalAgentId) {
       toast.error("Please Select any agent");
@@ -146,14 +150,13 @@ function TicketAssignmentPanel() {
 
     try {
       setSubmittingId(true);
-
       await axiosInstance.post(
         `/ticket/assignTicket/${activeTicketId}`,
         { agent_Id: modalAgentId },
         { headers },
       );
 
-      toast.success("Ticket Assign Successfully To Agent!");
+      toast.success("Ticket Assigned Successfully To Agent!");
       setUnassignedTickets((prev) =>
         prev.filter((t) => t.id !== activeTicketId),
       );
@@ -189,7 +192,7 @@ function TicketAssignmentPanel() {
           New Ticket Assignment Desk
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Here Show All Open And New Ticket
+          Here Show All Open And New Tickets
         </Typography>
       </Box>
 
@@ -224,7 +227,7 @@ function TicketAssignmentPanel() {
                     key={row.id}
                     sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
                   >
-                    <TableCell fontWeight="medium">
+                    <TableCell sx={{ fontWeight: "medium" }}>
                       #{row.ticket_number || row.id}
                     </TableCell>
                     <TableCell sx={{ maxWidth: 250, fontWeight: "500" }}>
@@ -235,7 +238,6 @@ function TicketAssignmentPanel() {
                       <Chip
                         label="OPEN"
                         size="small"
-                        color="error"
                         variant="filled"
                         sx={{
                           fontWeight: "bold",
@@ -308,7 +310,6 @@ function TicketAssignmentPanel() {
               label="Choose Agent"
               onChange={(e) => setModalAgentId(e.target.value)}
             >
-              {/* SAFE MAP CHECK: Agar kisi wajah se array na ho toh blank array chalega */}
               {(Array.isArray(agents) ? agents : []).map((agent) => (
                 <MenuItem key={agent.id} value={agent.id}>
                   {agent.name}

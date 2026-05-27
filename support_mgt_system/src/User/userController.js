@@ -167,4 +167,16 @@ export default class userController {
       newAccessToken,
     });
   }
+  async logout(req, res) {
+    try {
+      const user = req.user;
+      if (!user || !user.id) {
+        return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
+      }
+      await this.service.clearRefreshToken(user.id);
+      return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGOUT_SUCCESS);
+    } catch (error) {
+      return sendResponse(res, STATUS_CODE.SERVER_ERROR, authMessage.INVALID);
+    }
+  }
 }

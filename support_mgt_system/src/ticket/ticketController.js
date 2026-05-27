@@ -57,16 +57,6 @@ export default class ticketController {
         TICKET_MESSAGE.TICKET_NOT_FOUND,
       );
     }
-    if (
-      req.user.role.name === "Customer" &&
-      ticket.customer_Id !== req.user.id
-    ) {
-      return sendResponse(
-        res,
-        STATUS_CODE.BAD_REQUEST,
-        TICKET_MESSAGE.ACCESS_DENIED,
-      );
-    }
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
@@ -77,9 +67,16 @@ export default class ticketController {
     );
   }
   async getAllTickets(req, res) {
-    const tickets = await this.service.getAllTickets(req.query);
+    const result = await this.service.getAllTickets(req.query);
+    // result: { count, rows, page, limit }
+    const formatted = commanFunction.paginationsResponse({
+      count: result.count,
+      rows: result.rows,
+      page: result.page,
+      limit: result.limit,
+    });
     return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.ALL_TICKET, {
-      tickets,
+      tickets: formatted,
     });
   }
   async assignTicket(req, res) {

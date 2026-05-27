@@ -1,4 +1,5 @@
 import { Op, where } from "sequelize";
+import { getPagination } from "../../utility/commanFunction.js";
 export default class TicketService {
   async init(db) {
     this.Model = db.models;
@@ -31,7 +32,7 @@ export default class TicketService {
     });
   };
   getTicketById = async (id) => {
-    return this.Model.TicketModel.findOne({
+    return this.Model.TicketModel.findAll({
       where: {
         id: id,
       },
@@ -67,9 +68,10 @@ export default class TicketService {
       where.priority = query.priority;
     }
 
-    return await this.Model.TicketModel.findAll({
-      where,
+    const { page, limit, offset } = getPagination(query.page, query.limit);
 
+    const result = await this.Model.TicketModel.findAndCountAll({
+      where,
       include: [
         {
           model: this.Model.UserModel,
@@ -82,9 +84,12 @@ export default class TicketService {
           attributes: ["id", "name"],
         },
       ],
-
       order: [["id", "DESC"]],
+      limit,
+      offset,
     });
+
+    return { count: result.count, rows: result.rows, page, limit };
   }
   async getAgentsList(filter = {}) {
     const where = { is_active: true, deletedAt: null };

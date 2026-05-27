@@ -112,7 +112,7 @@ function Practice() {
                 helperText={errors.password?.message}
                 {...register("password")}
                 type="password"
-                inputProps={{ maxLength: 10 }}
+                inputProps={{ maxLength: 15 }}
               />
 
               <Button

@@ -27,6 +27,9 @@ export default class UserService {
   updateUser = async (id, payload) => {
     return this.Model.Users.update(payload, { where: { id: id } });
   };
+  async clearRefreshToken(id) {
+    return this.Model.Users.update({ refreshToken: null }, { where: { id } });
+  }
     async createUser(payload) {
         const user = await this.Model.Users.create(payload);
         return user;

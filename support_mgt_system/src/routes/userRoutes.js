@@ -47,4 +47,5 @@ router.get(
 );
 router.post("/login", asyncHandler(controller.login.bind(controller)));
 router.post("/refreshToken", asyncHandler(controller.refreshToken.bind(controller)));
+router.post("/logout", authorize, asyncHandler(controller.logout.bind(controller)));
 export default router;

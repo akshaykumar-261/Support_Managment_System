@@ -11,8 +11,24 @@ export default class ticketController {
   }
   // Reassign Ticket
   async reAssignTicket(req, res) {
-    const { ticket_Id } = req.body;
-    const ticket = await this.Model.TicketModel.findByPk(ticket_Id);
+    const { ticket_Id, ticket_number } = req.body;
+    let ticket = null;
+    if (ticket_number) {
+      ticket = await this.Model.TicketModel.findOne({
+        where: { ticket_number: ticket_number },
+      });
+    } else if (ticket_Id) {
+      const asNumber = Number(ticket_Id);
+      if (!Number.isNaN(asNumber) && String(asNumber) === String(ticket_Id)) {
+        // numeric id provided
+        ticket = await this.Model.TicketModel.findByPk(asNumber);
+      } else {
+        // treat ticket_Id as a ticket_number string
+        ticket = await this.Model.TicketModel.findOne({
+          where: { ticket_number: ticket_Id },
+        });
+      }
+    }
     if (!ticket) {
       return sendResponse(
         res,
@@ -20,9 +36,22 @@ export default class ticketController {
         TICKET_MESSAGE.TICKET_NOT_FOUND,
       );
     }
-    const assign = await this.service.reAssignTicket({
-      ...req.body,
+    // ensure ticket_Id numeric is passed to history record
+    const payload = { ...req.body, ticket_Id: ticket.id };
+    // coerce numeric-like strings to numbers for numeric fields
+    [
+      "assign_By",
+      "assign_To",
+      "assign_From",
+      "from_Department",
+      "to_Department",
+    ].forEach((key) => {
+      if (payload[key] !== undefined && payload[key] !== null) {
+        const n = Number(payload[key]);
+        if (!Number.isNaN(n)) payload[key] = n;
+      }
     });
+    const assign = await this.service.reAssignTicket(payload);
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
