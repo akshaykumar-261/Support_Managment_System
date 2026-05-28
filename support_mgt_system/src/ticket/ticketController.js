@@ -1,5 +1,9 @@
 import TicketService from "./ticketService.js";
-import { TICKET_MESSAGE, AGENT_MESSAGE, authMessage } from "../helper/commanMessage.js";
+import {
+  TICKET_MESSAGE,
+  AGENT_MESSAGE,
+  authMessage,
+} from "../helper/commanMessage.js";
 import { sendResponse } from "../helper/responseHandler.js";
 import { STATUS_CODE } from "../helper/statusCode.js";
 import * as commanFunction from "../../utility/commanFunction.js";
@@ -26,7 +30,7 @@ export default class ticketController {
     const ticket = await this.service.createTicket(payload);
     return sendResponse(
       res,
-      STATUS_CODE.SUCCESS,  
+      STATUS_CODE.SUCCESS,
       TICKET_MESSAGE.TICKET_CREATE,
       { ticket },
     );
@@ -54,28 +58,28 @@ export default class ticketController {
     });
     return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.TICKET_CLOSE);
   }
-async getTicketByCustomer(req, res) {
-  const { id } = req.params;
+  async getTicketByCustomer(req, res) {
+    const { id } = req.params;
 
-  const ticket = await this.service.getTicketByCustomer(id);
+    const ticket = await this.service.getTicketByCustomer(id);
 
-  if (!ticket || ticket.length === 0) {
+    if (!ticket || ticket.length === 0) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        TICKET_MESSAGE.TICKET_NOT_FOUND,
+      );
+    }
+
     return sendResponse(
       res,
-      STATUS_CODE.BAD_REQUEST,
-      TICKET_MESSAGE.TICKET_NOT_FOUND,
+      STATUS_CODE.SUCCESS,
+      TICKET_MESSAGE.TICKET_FETCHED,
+      {
+        ticket,
+      },
     );
   }
-
-  return sendResponse(
-    res,
-    STATUS_CODE.SUCCESS,
-    TICKET_MESSAGE.TICKET_FETCHED,
-    {
-      ticket,
-    },
-  );
-}
   async getAllTickets(req, res) {
     const result = await this.service.getAllTickets(req.query);
     // result: { count, rows, page, limit }
@@ -104,11 +108,7 @@ async getTicketByCustomer(req, res) {
       current_Agent: agent_Id,
       status: "in_progress",
     });
-    return sendResponse(
-      res,
-      STATUS_CODE.SUCCESS,
-      TICKET_MESSAGE.TICKET_ASSIGN,
-    );
+    return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.TICKET_ASSIGN);
   }
 
   async getAgentsList(req, res) {
@@ -128,26 +128,65 @@ async getTicketByCustomer(req, res) {
       { users: agents },
     );
   }
- 
-
   async dashboard(req, res) {
     const dashboard = await this.service.dashBoard();
-    return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.DASHBOARD,{dashboard});
+    return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.DASHBOARD, {
+      dashboard,
+    });
   }
-    async updateStatus(req, res) {
-        const { id } = req.params;
-        const { status } = req.body;
-        await this.service.updateTicket(id, {
-            status,
-        });
-        return sendResponse(res,STATUS_CODE.SUCCESS,TICKET_MESSAGE.STATUS)
-    }
-    async updatePriority(req, res) {
-        const { id } = req.params;
-        const { priority } = req.body;
-        await this.service.updateTicket(id, {
-            priority,
-        });
-        return sendResponse(res,STATUS_CODE.SUCCESS,TICKET_MESSAGE.PRIORITY)
-    }
+  async updateStatus(req, res) {
+    const { id } = req.params;
+    const { status } = req.body;
+    await this.service.updateTicket(id, {
+      status,
+    });
+    return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.STATUS);
+  }
+  async updatePriority(req, res) {
+    const { id } = req.params;
+    const { priority } = req.body;
+    await this.service.updateTicket(id, {
+      priority,
+    });
+    return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.PRIORITY);
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

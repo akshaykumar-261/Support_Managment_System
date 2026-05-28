@@ -135,17 +135,6 @@ function Home() {
       <Drawer
         anchor="left"
         open={isOpen}
-        // FIX 1: Jab tak backdrop ya escape key dabayein, tab tak band na ho
-        disableEscapeKeyDown
-        onClose={(event, reason) => {
-          // Agar reason 'backdropClick' hai, toh return kar jao (kuch mat karo)
-          if (reason === "backdropClick") return;
-          handleDrawerToggle();
-        }}
-        // FIX 2: Backdrop (kala parda) click ko block karne ke liye pointer events control karna
-        ModalProps={{
-          enforceFocus: false,
-        }}
         sx={{
           "& .MuiDrawer-paper": {
             width: "280px",
@@ -161,13 +150,10 @@ function Home() {
         <Box>
           {/* Drawer Header with MenuIcon to CLOSE */}
           <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1 }}>
-            {/* Sirf is Icon par click karne se hi ab navbar band hoga */}
             <IconButton onClick={handleDrawerToggle} sx={{ color: "white" }}>
               <MenuOpenIcon />
             </IconButton>
-           
           </Box>
-
           <Divider />
 
           {/* Menu Items List */}

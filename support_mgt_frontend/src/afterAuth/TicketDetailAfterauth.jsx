@@ -18,8 +18,6 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axiosInstance.jsx";
-
-// 1. PEHLE NAYE CHAT COMPONENT KO IMPORT KAREIN
 import TicketChat from "./TicketChat.jsx";
 
 function TicketDetailAfterauth() {
@@ -27,52 +25,95 @@ function TicketDetailAfterauth() {
   const navigate = useNavigate();
 
   const [ticket, setTicket] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [updatingPriority, setUpdatingPriority] = useState(false);
-
   const token = localStorage.getItem("accessToken");
   const headers = { Authorization: token ? `Bearer ${token}` : "" };
+  const fetchTicketDetails = async () => {
+    try {
+      const response = await axiosInstance.get("/ticket/getTicketListByAdmin", {
+        headers,
+        params: { page: 1, limit: 1000 },
+      });
+
+      if (response.data?.data?.tickets?.data) {
+        const foundTicket = response.data.data.tickets.data.find(
+          (t) => String(t.id) === String(id),
+        );
+        if (foundTicket) setTicket(foundTicket);
+        else toast.error("Ticket Not Found");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error occurred while loading ticket details.");
+    }
+  };
 
   useEffect(() => {
-    const fetchTicketDetails = async () => {
-      try {
-        setLoading(true);
-        const response = await axiosInstance.get(
-          "/ticket/getTicketListByAdmin",
-          { headers, params: { page: 1, limit: 1000 } },
-        );
-
-        if (response.data?.data?.tickets?.data) {
-          const foundTicket = response.data.data.tickets.data.find(
-            (t) => String(t.id) === String(id),
-          );
-          if (foundTicket) setTicket(foundTicket);
-          else toast.error("Ticket Not Found");
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Error occurred while loading ticket details.");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchTicketDetails();
   }, [id]);
 
-  // Priority and status change handlers remain exactly unchanged...
+  // 2. UPDATE STATUS API CONSUMPTION
   const handleStatusChange = async (newStatus) => {
-    /.../;
-  };
-  const handlePriorityChange = async (newPriority) => {
-    /.../;
+    try {
+      setUpdatingStatus(true);
+
+      // Backend Route: /updateTicketStatus/:id
+      const response = await axiosInstance.put(
+        `/ticket/updateTicketStatus/${id}`,
+        { status: newStatus }, // Body parameters as per schema
+        { headers },
+      );
+
+      // Frontend UI update bina page refresh kiye
+      setTicket((prevTicket) => ({
+        ...prevTicket,
+        status: newStatus,
+      }));
+
+      toast.success("Ticket status updated successfully!");
+    } catch (err) {
+      console.error("Status Update Error:", err);
+      toast.error(err.response?.data?.message || "Failed to update status.");
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
-  if (loading) {
-    /* Render loading wheel */ return null;
-  }
+  // 3. UPDATE PRIORITY API CONSUMPTION
+  const handlePriorityChange = async (newPriority) => {
+    try {
+      setUpdatingPriority(true);
+
+      // Backend Route: /updateTicketPriority/:id
+      const response = await axiosInstance.put(
+        `/ticket/updateTicketPriority/${id}`,
+        { priority: newPriority }, // Body parameters as per schema
+        { headers },
+      );
+
+      // Frontend UI update
+      setTicket((prevTicket) => ({
+        ...prevTicket,
+        priority: newPriority,
+      }));
+
+      toast.success("Ticket priority updated successfully!");
+    } catch (err) {
+      console.error("Priority Update Error:", err);
+      toast.error(err.response?.data?.message || "Failed to update priority.");
+    } finally {
+      setUpdatingPriority(false);
+    }
+  };
   if (!ticket) {
-    /* Render empty status alert */ return null;
+    return (
+      <Box sx={{ p: 4, textAlign: "center" }}>
+        <Typography color="error" variant="h6" fontWeight="bold">
+          Ticket Not Found
+        </Typography>
+      </Box>
+    );
   }
 
   return (
@@ -105,12 +146,12 @@ function TicketDetailAfterauth() {
                 Ticket #{ticket.ticket_number || ticket.id}
               </Typography>
               <Chip
-                label={ticket.status?.toUpperCase().replace("_", " ")}
+                label={ticket.status?.toUpperCase().replace("_", " ")} 
                 color="primary"
                 variant="outlined"
               />
             </Stack>
-            <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 2 }} />
             <Typography
               variant="h6"
               fontWeight="bold"
@@ -125,8 +166,7 @@ function TicketDetailAfterauth() {
               {ticket.description || "No description provided."}
             </Typography>
           </Card>
-
-          {/* 2. YAHAN TICKET CHAT BOX LOAD HO JAYEGA */}
+          {/* CHAT BOX */}
           <TicketChat ticketId={id} />
         </Grid>
 
@@ -144,6 +184,7 @@ function TicketDetailAfterauth() {
               Quick Ticket Actions
             </Typography>
             <Stack spacing={3}>
+              {/* STATUS DROPDOWN */}
               <FormControl fullWidth size="small">
                 <InputLabel>Update Status</InputLabel>
                 <Select
@@ -158,6 +199,7 @@ function TicketDetailAfterauth() {
                 </Select>
               </FormControl>
 
+              {/* PRIORITY DROPDOWN */}
               <FormControl fullWidth size="small">
                 <InputLabel>Update Priority</InputLabel>
                 <Select
@@ -169,9 +211,9 @@ function TicketDetailAfterauth() {
                   <MenuItem value="low">Low</MenuItem>
                   <MenuItem value="medium">Medium</MenuItem>
                   <MenuItem value="high">High</MenuItem>
-                  <MenuItem value="urgent">Urgent</MenuItem>
                 </Select>
               </FormControl>
+
               <Divider />
               <Box>
                 <Typography variant="body2" color="text.secondary">
@@ -191,6 +233,7 @@ function TicketDetailAfterauth() {
               </Box>
             </Stack>
           </Card>
+          
         </Grid>
       </Grid>
     </Box>

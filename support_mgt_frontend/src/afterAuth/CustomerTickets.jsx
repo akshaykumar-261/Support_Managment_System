@@ -20,6 +20,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ChatIcon from "@mui/icons-material/Chat";
+import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import toast from "react-hot-toast";
 import { useAuth } from "../hooks/useAuth.jsx";
 import axiosInstance from "../api/axiosInstance.jsx";
@@ -29,7 +30,7 @@ function CustomerTickets() {
   const { userId } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [openModal, setOpenModal] = useState(false);
-  const [selectedTicketId, setSelectedTicketId] = useState(null); 
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -257,7 +258,7 @@ function CustomerTickets() {
                   onClick={() => setSelectedTicketId(null)}
                   sx={{ color: "white", minWidth: "auto", fontWeight: "bold" }}
                 >
-                  X
+                  <CancelRoundedIcon />
                 </Button>
               </Paper>
 
