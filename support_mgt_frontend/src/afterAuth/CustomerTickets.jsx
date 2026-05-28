@@ -14,17 +14,22 @@ import {
   TextField,
   MenuItem,
   Chip,
+  Grid,
+  IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ChatIcon from "@mui/icons-material/Chat";
 import toast from "react-hot-toast";
 import { useAuth } from "../hooks/useAuth.jsx";
 import axiosInstance from "../api/axiosInstance.jsx";
+import TicketChat from "./TicketChat.jsx";
 
 function CustomerTickets() {
   const { userId } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [openModal, setOpenModal] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState(null); 
 
   const [formData, setFormData] = useState({
     title: "",
@@ -35,7 +40,6 @@ function CustomerTickets() {
   // 1. FETCH TICKETS USING AXIOS
   const fetchCustomerTickets = async () => {
     try {
-      // FIX: Path ko backend router ke explicit names se match kiya
       const response = await axiosInstance.get(
         `/ticket/getTicketByCustomer/${userId}`,
       );
@@ -49,6 +53,8 @@ function CustomerTickets() {
               ? [ticketData]
               : [],
         );
+
+        // FIX: Auto-selection logic yahan se hata diya hai taaki load hote hi chat open na ho.
       }
     } catch (error) {
       console.error("Error fetching tickets:", error);
@@ -80,25 +86,6 @@ function CustomerTickets() {
       toast.error(error.response?.data?.message || "Failed to create ticket");
     }
   };
-
-  // 3. CLOSE AN ACTIVE TICKET
-  const handleCloseTicket = async (ticketId) => {
-    if (!window.confirm("Are you sure you want to close this ticket?")) return;
-    try {
-      const response = await axiosInstance.post("/ticket/closeTicket", {
-        id: ticketId,
-      });
-
-      if (response.status === 200) {
-        toast.success("Ticket Closed Successfully");
-        fetchCustomerTickets();
-      }
-    } catch (error) {
-      console.error("Close ticket error:", error);
-      toast.error(error.response?.data?.message || "Action denied or failed");
-    }
-  };
-
   return (
     <Box>
       <Box
@@ -125,90 +112,160 @@ function CustomerTickets() {
         </Button>
       </Box>
 
-      {/* TICKETS DISPLAY TABLE */}
-      <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2 }}>
-        <Table>
-          <TableHead sx={{ backgroundColor: "#f8fafc" }}>
-            <TableRow>
-              <TableCell>
-                <b>Ticket No.</b>
-              </TableCell>
-              <TableCell>
-                <b>Title</b>
-              </TableCell>
-              <TableCell>
-                <b>Priority</b>
-              </TableCell>
-              <TableCell>
-                <b>Status</b>
-              </TableCell>
-              <TableCell align="center">
-                <b>Actions</b>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {tickets.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  No tickets raised yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              tickets.map((ticket) => (
-                <TableRow key={ticket.id} hover>
+      {/* GRID LAYOUT: Left Side Tickets Table, Right Side Chat Engine */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={selectedTicketId ? 7 : 12}>
+          <TableContainer
+            component={Paper}
+            sx={{ borderRadius: 2, boxShadow: 2 }}
+          >
+            <Table>
+              <TableHead sx={{ backgroundColor: "#f8fafc" }}>
+                <TableRow>
                   <TableCell>
-                    {ticket.ticket_number || `#${ticket.id}`}
-                  </TableCell>
-                  <TableCell>{ticket.title}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={
-                        ticket.priority ? ticket.priority.toUpperCase() : "LOW"
-                      }
-                      size="small"
-                      color={
-                        ticket.priority === "high"
-                          ? "error"
-                          : ticket.priority === "medium"
-                            ? "warning"
-                            : "default"
-                      }
-                    />
+                    <b>Ticket No.</b>
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      label={ticket.status}
-                      size="small"
-                      variant="outlined"
-                      color={
-                        ticket.status === "closed" ? "success" : "secondary"
-                      }
-                    />
+                    <b>Title</b>
+                  </TableCell>
+                  <TableCell>
+                    <b>Status</b>
                   </TableCell>
                   <TableCell align="center">
-                    {ticket.status !== "closed" ? (
-                      <Button
-                        variant="outlined"
-                        color="error"
-                        size="small"
-                        startIcon={<CheckCircleIcon />}
-                        onClick={() => handleCloseTicket(ticket.id)}
-                      >
-                        Close Ticket
-                      </Button>
-                    ) : (
-                      <Typography variant="body2" color="textSecondary">
-                        Resolved
-                      </Typography>
-                    )}
+                    <b>Chat</b>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              </TableHead>
+              <TableBody>
+                {tickets.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} align="center">
+                      No tickets raised yet.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  tickets.map((ticket) => {
+                    const isSelected =
+                      String(ticket.id) === String(selectedTicketId);
+                    return (
+                      <TableRow
+                        key={ticket.id}
+                        hover
+                        // FIX: Row level onClick hata diya, ab row par click karne se chat open nahi hogi
+                        sx={{
+                          backgroundColor: isSelected ? "#f3e8ff" : "inherit",
+                          "&:hover": {
+                            backgroundColor: isSelected ? "#e9d5ff" : "#f8fafc",
+                          },
+                        }}
+                      >
+                        <TableCell>
+                          {ticket.ticket_number || `#${ticket.id}`}
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            fontWeight={isSelected ? "bold" : "normal"}
+                          >
+                            {ticket.title}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={ticket.status}
+                            size="small"
+                            variant="outlined"
+                            color={
+                              ticket.status === "closed"
+                                ? "success"
+                                : "secondary"
+                            }
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 1,
+                              justifyContent: "center",
+                            }}
+                          >
+                            {/* FIX: Sirf is IconButton par click karne se chat set hogi */}
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Agar pehle se wahi open hai, toh toggle off kar do, nahi toh open karo
+                                setSelectedTicketId(
+                                  isSelected ? null : ticket.id,
+                                );
+                              }}
+                              sx={{
+                                backgroundColor: isSelected
+                                  ? "#6d28d9"
+                                  : "transparent",
+                                color: isSelected ? "#ffffff" : "#6d28d9",
+                                "&:hover": {
+                                  backgroundColor: isSelected
+                                    ? "#5b21b6"
+                                    : "#f3e8ff",
+                                },
+                              }}
+                            >
+                              <ChatIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Grid>
+
+        {/* RIGHT SIDE CHAT WINDOW (SIRF CHAT WINDOW DIKHAYEGA TICKET SELECT HONE PAR) */}
+        {selectedTicketId && (
+          <Grid item xs={12} md={5}>
+            <Box sx={{ mt: -3 }}>
+              <Paper
+                sx={{
+                  p: 1.5,
+                  bgcolor: "#6d28d9",
+                  color: "white",
+                  borderRadius: "12px 12px 0 0",
+                  mb: -3,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="bold"
+                  sx={{ ml: 1 }}
+                >
+                  Active Chat: Ticket #
+                  {tickets.find((t) => t.id === selectedTicketId)
+                    ?.ticket_number || selectedTicketId}
+                </Typography>
+                {/* Ek close button chat window ko band karne ke liye */}
+                <Button
+                  size="small"
+                  onClick={() => setSelectedTicketId(null)}
+                  sx={{ color: "white", minWidth: "auto", fontWeight: "bold" }}
+                >
+                  X
+                </Button>
+              </Paper>
+
+              <TicketChat ticketId={selectedTicketId} />
+            </Box>
+          </Grid>
+        )}
+      </Grid>
 
       {/* CREATE TICKET MODAL POPUP */}
       <Modal open={openModal} onClose={() => setOpenModal(false)}>

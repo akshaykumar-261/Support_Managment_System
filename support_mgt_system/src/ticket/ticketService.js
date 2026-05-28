@@ -31,10 +31,10 @@ export default class TicketService {
       raw: true,
     });
   };
-  getTicketById = async (id) => {
+  getTicketByCustomer = async (customerId) => {
     return this.Model.TicketModel.findAll({
       where: {
-        id: id,
+        customer_Id: customerId,
       },
       include: [
         {
@@ -66,6 +66,24 @@ export default class TicketService {
 
     if (query.priority) {
       where.priority = query.priority;
+    }
+
+    // ✅ Date filter — ?date=2026-05-28 ya ?date=today
+    if (query.date) {
+      const inputDate =
+        query.date === "today" ? new Date() : new Date(query.date);
+
+      // Us din ka start: 2026-05-28 00:00:00
+      const startOfDay = new Date(inputDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      // Us din ka end: 2026-05-28 23:59:59
+      const endOfDay = new Date(inputDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      where.createdAt = {
+        [Op.between]: [startOfDay, endOfDay],
+      };
     }
 
     const { page, limit, offset } = getPagination(query.page, query.limit);

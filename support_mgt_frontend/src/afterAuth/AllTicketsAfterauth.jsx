@@ -73,11 +73,6 @@ function AllTicketsAfterauth() {
   // Three-Dots Menu State
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
-
-  // History Modal State
-  const [historyLogs, setHistoryLogs] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-
   const token = localStorage.getItem("accessToken");
   const headers = { Authorization: token ? `Bearer ${token}` : "" };
 
@@ -176,7 +171,6 @@ function AllTicketsAfterauth() {
             <MenuItem value="low">Low</MenuItem>
             <MenuItem value="medium">Medium</MenuItem>
             <MenuItem value="high">High</MenuItem>
-            <MenuItem value="urgent">Urgent</MenuItem>
           </Select>
         </FormControl>
       </Stack>

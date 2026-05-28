@@ -14,6 +14,8 @@ import TicketDetailAfterauth from "../afterAuth/TicketDetailAfterauth.jsx";
 import TicketAssignmentPanel from "../afterAuth/TicketAssignmentPanel.jsx";
 import TicketHistoryPanel from "../afterAuth/TicketHistoryPanel.jsx";
 import CustomerTickets from "../afterAuth/CustomerTickets.jsx"; // Naya component jo hum banyenge
+import UserManagementPanel from "../afterAuth/UserManagementPanel.jsx";
+import AgentManagmentPanel from "../afterAuth/AgentManagmentPanel.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
 
 const ProtectedRoute = ({ children }) => {
@@ -97,6 +99,30 @@ const router = createBrowserRouter([
           </RoleGuard>
         ),
       },
+      {
+        path: "customers",
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <UserManagementPanel initialTab={0} />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: "agent",
+        element: (
+          <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+            <AgentManagmentPanel initialTab={0} />
+          </RoleGuard>
+        ),
+      },
+      // {
+      //   path: "agents",
+      //   element: (
+      //     <RoleGuard allowedRoles={[ROLES.ADMIN]}>
+      //       <UserManagementPanel initialTab={1} />
+      //     </RoleGuard>
+      //   ),
+      // },
 
       // CUSTOMER ROUTES
       {

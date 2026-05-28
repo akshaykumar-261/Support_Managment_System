@@ -1,5 +1,5 @@
 import TicketService from "./ticketService.js";
-import { TICKET_MESSAGE, AGENT_MESSAGE } from "../helper/commanMessage.js";
+import { TICKET_MESSAGE, AGENT_MESSAGE, authMessage } from "../helper/commanMessage.js";
 import { sendResponse } from "../helper/responseHandler.js";
 import { STATUS_CODE } from "../helper/statusCode.js";
 import * as commanFunction from "../../utility/commanFunction.js";
@@ -11,12 +11,19 @@ export default class ticketController {
   }
   async ticketCreate(req, res) {
     const ticketNo = commanFunction.generateTicketNumber();
-    
-    const ticket = await this.service.createTicket({
+    if (!req.user || !(req.user.id || req.user.dataValues?.id)) {
+      return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
+    }
+
+    const customerId = req.user.id || req.user.dataValues?.id;
+
+    const payload = {
       ...req.body,
       ticket_number: ticketNo,
-      customer_Id: req.user && req.user.id ? req.user.id : null,
-    });
+      customer_Id: customerId,
+    };
+
+    const ticket = await this.service.createTicket(payload);
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,  
@@ -47,25 +54,28 @@ export default class ticketController {
     });
     return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.TICKET_CLOSE);
   }
-  async getTicketByCustomer(req, res) {
-    const { id } = req.params;
-    const ticket = await this.service.getTicketById(id);
-    if (!ticket) {
-      return sendResponse(
-        res,
-        STATUS_CODE.BAD_REQUEST,
-        TICKET_MESSAGE.TICKET_NOT_FOUND,
-      );
-    }
+async getTicketByCustomer(req, res) {
+  const { id } = req.params;
+
+  const ticket = await this.service.getTicketByCustomer(id);
+
+  if (!ticket || ticket.length === 0) {
     return sendResponse(
       res,
-      STATUS_CODE.SUCCESS,
-      TICKET_MESSAGE.TICKET_FETCHED,
-      {
-        ticket,
-      },
+      STATUS_CODE.BAD_REQUEST,
+      TICKET_MESSAGE.TICKET_NOT_FOUND,
     );
   }
+
+  return sendResponse(
+    res,
+    STATUS_CODE.SUCCESS,
+    TICKET_MESSAGE.TICKET_FETCHED,
+    {
+      ticket,
+    },
+  );
+}
   async getAllTickets(req, res) {
     const result = await this.service.getAllTickets(req.query);
     // result: { count, rows, page, limit }

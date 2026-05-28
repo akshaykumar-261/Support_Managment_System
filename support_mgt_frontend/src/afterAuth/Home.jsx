@@ -5,6 +5,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
+import MenuOpenIcon from "@mui/icons-material/MenuOpen"; // Naya icon band karne ke liye
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -13,47 +14,35 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Divider from "@mui/material/Divider";
 import { AppGridContainer } from "../Component/GridCommanComponent.jsx";
-import { Link, Outlet, useNavigate } from "react-router-dom"; // useNavigate import kiya
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
 import toast from "react-hot-toast";
-
+import axiosInstance from "../api/axiosInstance.jsx";
 // Icons Imports
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import LowPriorityIcon from "@mui/icons-material/LowPriority";
-import LogoutIcon from "@mui/icons-material/Logout"; // Logout Icon import kiya
+import LogoutIcon from "@mui/icons-material/Logout";
 
 function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const { roleId } = useAuth();
-  const navigate = useNavigate(); // Navigation ke liye hook initialize kiya
+  const navigate = useNavigate();
 
-  const toggleDrawer = (openState) => () => {
-    setIsOpen(openState);
+  // Toggle behavior function jo toggle karega state ko
+  const handleDrawerToggle = () => {
+    setIsOpen(!isOpen);
   };
 
   // --- LOGOUT HANDLER FUNCTION ---
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem("accessToken");
-
-      // Backend api call
-      const response = await fetch("http://localhost:8088/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          token: `Bearer ${token}`, // Agar backend authorize middleware headers se token leta hai
-        },
-      });
-
-      if (response.ok) {
-        toast.success("Logged out successfully");
-      }
+      await axiosInstance.post("/logout");
+      toast.success("Logged out successfully");
     } catch (error) {
       console.error("Logout API error:", error);
     } finally {
-      // API fail ho ya pass, user ka local session clear karke login par bhej dena best practice h
       localStorage.removeItem("accessToken");
       navigate("/", { replace: true });
     }
@@ -63,46 +52,54 @@ function Home() {
     {
       text: "DashBoard",
       path: "/home",
-      icon: <DashboardIcon sx={{ color: "#6d28d9" }} />,
+      icon: <DashboardIcon sx={{ color: "white" }} />,
       allowedRoles: [1],
     },
     {
-      text: "All Tickets",
+      text: " Tickets",
       path: "/home/all-tickets",
-      icon: <ConfirmationNumberIcon sx={{ color: "#6d28d9" }} />,
+      icon: <ConfirmationNumberIcon sx={{ color: "white" }} />,
       allowedRoles: [1, 2],
     },
     {
-      text: "My Support Tickets", // Naya option sirf Customer ko dikhane ke liye
+      text: "My Support Tickets",
       path: "/home/my-tickets",
-      icon: <ConfirmationNumberIcon sx={{ color: "#6d28d9" }} />,
-      allowedRoles: [3], // Only Customer (3)
+      icon: <ConfirmationNumberIcon sx={{ color: "white" }} />,
+      allowedRoles: [3],
     },
     {
       text: "Assign Ticket To Agent",
       path: "/home/assign-panel",
-      icon: <AssignmentIndIcon sx={{ color: "#6d28d9" }} />,
+      icon: <AssignmentIndIcon sx={{ color: "white" }} />,
       allowedRoles: [1],
     },
     {
       text: "Re-Assign Ticket",
       path: "/home/ticket-history",
-      icon: <LowPriorityIcon sx={{ color: "#6d28d9" }} />,
+      icon: <LowPriorityIcon sx={{ color: "white" }} />,
       allowedRoles: [1, 2],
+    },
+    {
+      text: "Customer Management",
+      path: "/home/customers",
+      icon: <AssignmentIndIcon sx={{ color: "white" }} />,
+      allowedRoles: [1], // Only Admin
+    },
+    {
+      text: "Agent Management",
+      path: "/home/agent",
+      icon: <AssignmentIndIcon sx={{ color: "white" }} />,
+      allowedRoles: [1], // Only Admin
     },
   ];
 
-  // Dynamic Header Text Logic
   const getHeaderTitle = () => {
     if (roleId === 1) return "Admin DashBoard";
     if (roleId === 2) return "Agent DashBoard";
-    return "Customer Support Desk";
+    if (roleId === 3) return "Customer Support Desk";
+    return "Support Desk";
   };
 
-  // Return block ke andar AppBar ka component is tarah badlein:
-  <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-    Welcome To {getHeaderTitle()}
-  </Typography>;
   const filteredMenuItems = menuItems.filter((item) =>
     item.allowedRoles.includes(roleId),
   );
@@ -119,12 +116,13 @@ function Home() {
                 color="inherit"
                 aria-label="menu"
                 sx={{ mr: 2 }}
-                onClick={toggleDrawer(true)}
+                onClick={handleDrawerToggle}
               >
                 <MenuIcon />
               </IconButton>
+
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                Welcome To {roleId === 1 ? "Admin" : "Agent"} DashBoard
+                Welcome To {getHeaderTitle()}
               </Typography>
             </Toolbar>
           </AppBar>
@@ -137,29 +135,37 @@ function Home() {
       <Drawer
         anchor="left"
         open={isOpen}
-        onClose={toggleDrawer(false)}
+        // FIX 1: Jab tak backdrop ya escape key dabayein, tab tak band na ho
+        disableEscapeKeyDown
+        onClose={(event, reason) => {
+          // Agar reason 'backdropClick' hai, toh return kar jao (kuch mat karo)
+          if (reason === "backdropClick") return;
+          handleDrawerToggle();
+        }}
+        // FIX 2: Backdrop (kala parda) click ko block karne ke liye pointer events control karna
+        ModalProps={{
+          enforceFocus: false,
+        }}
         sx={{
           "& .MuiDrawer-paper": {
             width: "280px",
-            backgroundColor: "white",
+            backgroundColor: "#9075BD",
             boxSizing: "border-box",
             display: "flex",
-            flexDirection: "column", // Flex column banaya taaki layout manage ho sake
-            justifyContent: "space-between", // Isse logout automatic bottom me fix ho jayega
+            flexDirection: "column",
+            justifyContent: "space-between",
           },
         }}
       >
         {/* Top Content Area */}
         <Box>
-          {/* Drawer Header */}
-          <Box sx={{ p: 3, textAlign: "center" }}>
-            <Typography
-              variant="h5"
-              fontWeight="bold"
-              sx={{ textDecoration: "underline", color: "#6d28d9" }}
-            >
-              Support Desk
-            </Typography>
+          {/* Drawer Header with MenuIcon to CLOSE */}
+          <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1 }}>
+            {/* Sirf is Icon par click karne se hi ab navbar band hoga */}
+            <IconButton onClick={handleDrawerToggle} sx={{ color: "white" }}>
+              <MenuOpenIcon />
+            </IconButton>
+           
           </Box>
 
           <Divider />
@@ -171,13 +177,12 @@ function Home() {
                 <ListItemButton
                   component={Link}
                   to={item.path}
-                  onClick={toggleDrawer(false)}
                   sx={{
                     borderRadius: 2,
                     py: 1.5,
                     px: 2,
                     "&:hover": {
-                      backgroundColor: "#f3e8ff",
+                      backgroundColor: "#6d28d9",
                     },
                   }}
                 >
@@ -188,7 +193,7 @@ function Home() {
                         sx={{
                           fontSize: "1.1rem",
                           fontWeight: 500,
-                          color: "#334155",
+                          color: "white",
                         }}
                       >
                         {item.text}
@@ -208,22 +213,21 @@ function Home() {
             <ListItem disablePadding>
               <ListItemButton
                 onClick={() => {
-                  setIsOpen(false);
-                  handleLogout(); // Logout trigger function
+                  setIsOpen(false); // Logout par close ho jaye
+                  handleLogout();
                 }}
                 sx={{
                   borderRadius: 2,
                   py: 1.5,
                   px: 2,
-                  bgcolor: "#fff1f2", // Light pink/red tint background
+                  bgcolor: "#fff1f2",
                   "&:hover": {
-                    backgroundColor: "#ffe4e6", // Smooth red hover
+                    backgroundColor: "#ffe4e6",
                   },
                 }}
               >
                 <ListItemIcon sx={{ minWidth: 40 }}>
-                  <LogoutIcon sx={{ color: "#f43f5e" }} />{" "}
-                  {/* Rose Red Color Icon */}
+                  <LogoutIcon sx={{ color: "#f43f5e" }} />
                 </ListItemIcon>
                 <ListItemText
                   primary={
