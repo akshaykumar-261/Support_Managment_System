@@ -15,11 +15,23 @@ import {
   Grid,
   Chip,
   InputAdornment,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CircleIcon from "@mui/icons-material/Circle";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import AddIcon from "@mui/icons-material/Add";
 import axiosInstance from "../api/axiosInstance.jsx";
 import toast from "react-hot-toast";
+
+// 🟢 React Hook Form aur Zod ke Import
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { registerSchema } from "../beforeAuth/RegisterValidation.jsx"
 
 function AgentManagmentPanel() {
   // API States
@@ -36,6 +48,34 @@ function AgentManagmentPanel() {
   const [searchEmail, setSearchEmail] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  // Modal Open State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // 🟢 React Hook Form Initialization
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      roleId: "2", // Hidden/Disabled field value setup
+    },
+  });
+
+  // Selected file ka live name watch karne ke liye
+  const selectedFile = watch("profile_Img");
+
+  // Reset form when modal closes or opens
+  useEffect(() => {
+    if (!isModalOpen) {
+      reset();
+    }
+  }, [isModalOpen, reset]);
+
+  // Fetch Table Data
   const fetchAgents = async () => {
     setLoading(true);
     try {
@@ -77,7 +117,6 @@ function AgentManagmentPanel() {
           finalRows = response.data;
           finalCount = response.data.length;
         }
-
         if (finalRows.length === 0) {
           const l1 = response.data;
           const l2 = response.data?.data;
@@ -112,6 +151,39 @@ function AgentManagmentPanel() {
     fetchAgents();
   }, [page, rowsPerPage, statusFilter]);
 
+  // 🟢 ON SUBMIT METHOD (Same pattern as Practice.jsx but with role_Id = "2")
+  const onSubmit = async (data) => {
+    try {
+      // Safety profile check (Aapke flow ke mutabik mandatory check)
+      if (!data.profile_Img || data.profile_Img.length === 0) {
+        toast.error("Please select a profile image");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("name", data.name);
+      formData.append("email", data.email);
+      formData.append("address", data.address);
+      formData.append("phoneNo", data.phoneNo);
+      formData.append("password", data.password);
+      formData.append("role_Id", "2"); // 2 is Locked for Agent profile
+      formData.append("profile_Img", data.profile_Img[0]); // Zero index image pass execution
+
+      await axiosInstance.post("users/create", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      toast.success("Agent Account Created Successfully");
+      setIsModalOpen(false); // Modal band hoga
+      fetchAgents(); // Table refresh ho jayegi automatic
+    } catch (error) {
+      console.log("API Error", error);
+      toast.error(error.response?.data?.message || "Failed to create agent");
+    }
+  };
+
   const handleSearchSubmit = (e) => {
     if (e.key === "Enter") {
       setPage(0);
@@ -130,9 +202,29 @@ function AgentManagmentPanel() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight="bold" color="#334155" mb={3}>
-        Agent Workspace Management
-      </Typography>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
+        <Typography variant="h5" fontWeight="bold" color="#334155">
+          Agent Workspace Management
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setIsModalOpen(true)}
+          sx={{
+            bgcolor: "#6d28d9",
+            fontWeight: "bold",
+            textTransform: "none",
+            "&:hover": { bgcolor: "#5b21b6" },
+          }}
+        >
+          Add New Agent
+        </Button>
+      </Box>
 
       {/* Filter Options Section */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 1 }}>
@@ -289,6 +381,177 @@ function AgentManagmentPanel() {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </TableContainer>
+
+      {/* 🟢 MODAL WITH HANDLESUBMIT AND VALIDATIONS */}
+      <Dialog
+        open={isModalOpen}
+        onClose={() => !isSubmitting && setIsModalOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ fontWeight: "bold", color: "#6d28d9" }}>
+          Add New Agent Profile
+        </DialogTitle>
+
+        {/* Form component wrap with hook form submission */}
+        <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <DialogContent dividers>
+            <Grid container spacing={2}>
+              {/* Full Name */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  required
+                  size="small"
+                  label="Full Name"
+                  error={!!errors.name}
+                  helperText={errors.name?.message}
+                  {...register("name")}
+                  inputProps={{ maxLength: 30 }}
+                />
+              </Grid>
+
+              {/* Email Address */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  required
+                  size="small"
+                  type="email"
+                  label="Email Address"
+                  error={!!errors.email}
+                  helperText={errors.email?.message}
+                  {...register("email")}
+                />
+              </Grid>
+
+              {/* Password */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  required
+                  size="small"
+                  type="password"
+                  label="Password"
+                  error={!!errors.password}
+                  helperText={errors.password?.message}
+                  {...register("password")}
+                  inputProps={{ maxLength: 15 }}
+                />
+              </Grid>
+
+              {/* Phone Number */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Phone Number"
+                  error={!!errors.phoneNo}
+                  helperText={errors.phoneNo?.message}
+                  {...register("phoneNo")}
+                  inputProps={{ maxLength: 10 }}
+                />
+              </Grid>
+
+              {/* Full Address */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  size="small"
+                  label="Address"
+                  error={!!errors.address}
+                  helperText={errors.address?.message}
+                  {...register("address")}
+                />
+              </Grid>
+
+              {/* Role ID (Pre-filled to 2 & Locked/Disabled) */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  disabled
+                  size="small"
+                  label="Role ID"
+                  value="2"
+                  helperText="Locked to Agent Role (2)"
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                />
+              </Grid>
+
+              {/* Profile Image File Picker wrapped with hook form input */}
+              <Grid item xs={12} sm={6}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 0.5 }}
+                >
+                  Profile Image
+                </Typography>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<CloudUploadIcon />}
+                  error={!!errors.profile_Img}
+                  sx={{
+                    textTransform: "none",
+                    height: "40px",
+                    borderColor: errors.profile_Img ? "#ef4444" : "#cbd5e1",
+                    color: errors.profile_Img ? "#ef4444" : "#475569",
+                  }}
+                >
+                  {selectedFile && selectedFile[0]
+                    ? selectedFile[0].name.substring(0, 15) + "..."
+                    : "Upload Avatar"}
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    {...register("profile_Img")}
+                  />
+                </Button>
+                {errors.profile_Img && (
+                  <Typography
+                    variant="caption"
+                    color="error"
+                    sx={{ mt: 0.5, display: "block" }}
+                  >
+                    {errors.profile_Img?.message}
+                  </Typography>
+                )}
+              </Grid>
+            </Grid>
+          </DialogContent>
+
+          <DialogActions sx={{ p: 2.5, gap: 1 }}>
+            <Button
+              onClick={() => setIsModalOpen(false)}
+              color="inherit"
+              disabled={isSubmitting}
+              sx={{ textTransform: "none" }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={isSubmitting}
+              sx={{
+                bgcolor: "#6d28d9",
+                textTransform: "none",
+                fontWeight: "bold",
+                "&:hover": { bgcolor: "#5b21b6" },
+              }}
+            >
+              {isSubmitting ? "Creating..." : "Create Agent"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
     </Box>
   );
 }

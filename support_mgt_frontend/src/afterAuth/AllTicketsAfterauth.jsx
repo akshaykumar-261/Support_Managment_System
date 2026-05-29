@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Box,
   Typography,
@@ -18,119 +18,47 @@ import {
   Stack,
   IconButton,
   Menu,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
-  Divider,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useNavigate } from "react-router-dom";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import HistoryIcon from "@mui/icons-material/History";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import axiosInstance from "../api/axiosInstance.jsx";
-
-const getColor = (value) => {
-  switch (value) {
-    case "high":
-    case "urgent":
-    case "High":
-    case "Urgent":
-      return { bg: "#FEE2E2", text: "#DC2626" };
-    case "medium":
-    case "Medium":
-      return { bg: "#FFEDD5", text: "#EA580C" };
-    case "low":
-    case "Low":
-      return { bg: "#DCFCE7", text: "#16A34A" };
-    case "open":
-    case "Open":
-      return { bg: "#EFF6FF", text: "#2563EB" };
-    case "in_progress":
-    case "In Progress":
-      return { bg: "#FFFAF0", text: "#B45309" };
-    case "closed":
-    case "Closed":
-      return { bg: "#F0FDF4", text: "#15803D" };
-    default:
-      return { bg: "#F3F4F6", text: "#6B7280" };
-  }
-};
-
+import { useGetAllTickets } from "../api/AllAPI.jsx";
+import { getColor } from "../commonFunction/Color Function.jsx";
+import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "../commonFunction/ticketActions.jsx";
 function AllTicketsAfterauth() {
   const navigate = useNavigate();
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(5);
-  const [totalPages, setTotalPages] = useState(1);
-
   // Three-Dots Menu State
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
-  const token = localStorage.getItem("accessToken");
-  const headers = { Authorization: token ? `Bearer ${token}` : "" };
-
-  useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        setLoading(true);
-        const params = {};
-        if (statusFilter) params.status = statusFilter;
-        if (priorityFilter) params.priority = priorityFilter;
-        params.page = page;
-        params.limit = perPage;
-
-        const response = await axiosInstance.get(
-          "/ticket/getTicketListByAdmin",
-          {
-            headers: headers,
-            params: params,
-          },
-        );
-        if (response.data && response.data.data && response.data.data.tickets) {
-          const ticketsPayload = response.data.data.tickets;
-          setTickets(ticketsPayload.data || []);
-          setTotalPages(ticketsPayload.totalPage || 1);
-          setPerPage(ticketsPayload.perPage || perPage);
-          setError(null);
-        } else {
-          setError("Data is not valid format");
-        }
-      } catch (err) {
-        console.error("Fetch Tickets Error:", err);
-        setError(
-          err.response?.data?.message || "Occur error while loading tickets.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTickets();
-  }, [statusFilter, priorityFilter, page, perPage]);
-
+  const { data, isLoading, error } = useGetAllTickets({
+    statusFilter,
+    priorityFilter,
+    page,
+    perPage,
+  });
+  // Backend response pattern ke hisab se safe extraction
+  const tickets = data?.data || [];
+  const totalPages = data?.totalPage || 1;
   // Handle Three-Dots Menu Open
   const handleMenuOpen = (event, ticketId) => {
     setAnchorEl(event.currentTarget);
     setSelectedTicketId(ticketId);
   };
-
   // Handle Three-Dots Menu Close
   const handleMenuClose = () => {
     setAnchorEl(null);
   };
-
   // Navigate to Ticket Details Page
   const handleViewDetail = () => {
     handleMenuClose();
     navigate(`/home/ticket-detail/${selectedTicketId}`);
   };
+
   return (
     <Box>
       {/* Header Section */}
@@ -147,13 +75,14 @@ function AllTicketsAfterauth() {
             label="Filter by Status"
             onChange={(e) => {
               setStatusFilter(e.target.value);
-              setPage(1);
+              setPage(1); // Filter badalne par first page par reset karein
             }}
           >
-            <MenuItem value="">All Statuses</MenuItem>
-            <MenuItem value="open">Open</MenuItem>
-            <MenuItem value="in_progress">In Progress</MenuItem>
-            <MenuItem value="closed">Closed</MenuItem>
+            {STATUS_OPTIONS.map((item) => (
+              <MenuItem key={item.value} value={item.value}>
+                {item.label}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
@@ -164,13 +93,14 @@ function AllTicketsAfterauth() {
             label="Filter by Priority"
             onChange={(e) => {
               setPriorityFilter(e.target.value);
-              setPage(1);
+              setPage(1); // Filter badalne par first page par reset karein
             }}
           >
-            <MenuItem value="">All Priorities</MenuItem>
-            <MenuItem value="low">Low</MenuItem>
-            <MenuItem value="medium">Medium</MenuItem>
-            <MenuItem value="high">High</MenuItem>
+            {PRIORITY_OPTIONS.map((item) => (
+              <MenuItem key={item.value} value={item.value}>
+                {item.label}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
       </Stack>
@@ -183,14 +113,17 @@ function AllTicketsAfterauth() {
           borderRadius: 2,
         }}
       >
-        {loading ? (
+        {" "}
+        {isLoading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
             <CircularProgress sx={{ color: "#6d28d9" }} />
           </Box>
         ) : error ? (
           <Box sx={{ textAlign: "center", py: 4 }}>
             <Typography color="error" variant="h6">
-              {error}
+              {error.response?.data?.message ||
+                error.message ||
+                "Failed to load tickets"}
             </Typography>
           </Box>
         ) : (
@@ -228,11 +161,7 @@ function AllTicketsAfterauth() {
                           "&:last-child td, &:last-child th": { border: 0 },
                         }}
                       >
-                        <TableCell
-                          component="th"
-                          scope="row"
-                          fontWeight="medium"
-                        >
+                        <TableCell component="th" scope="row">
                           #{row.ticket_number || row.id}
                         </TableCell>
                         <TableCell>{row.customer?.name || "N/A"}</TableCell>
@@ -293,7 +222,7 @@ function AllTicketsAfterauth() {
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">
-                        Koi tickets nahi mile.
+                        No Ticket Found
                       </Typography>
                     </TableCell>
                   </TableRow>

@@ -1,40 +1,36 @@
-import React, { useState } from "react";
-import AppBar from "@mui/material/AppBar";
-import Box from "@mui/material/Box";
-import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
-import IconButton from "@mui/material/IconButton";
+import { useState } from "react";
+import {
+  AppBar,
+  Box,
+  Toolbar,
+  Typography,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  IconButton,
+} from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen"; // Naya icon band karne ke liye
-import Drawer from "@mui/material/Drawer";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-import Divider from "@mui/material/Divider";
 import { AppGridContainer } from "../Component/GridCommanComponent.jsx";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.jsx";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axiosInstance.jsx";
-// Icons Imports
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
-import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
-import LowPriorityIcon from "@mui/icons-material/LowPriority";
 import LogoutIcon from "@mui/icons-material/Logout";
-
+import { ROLES, ROLE_TITELS } from "../commonFunction/role.jsx";
+import { MENU_ITEMS } from "../commonFunction/menuItem.jsx";
 function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const { roleId } = useAuth();
   const navigate = useNavigate();
-
   // Toggle behavior function jo toggle karega state ko
   const handleDrawerToggle = () => {
     setIsOpen(!isOpen);
   };
-
   // --- LOGOUT HANDLER FUNCTION ---
   const handleLogout = async () => {
     try {
@@ -47,63 +43,10 @@ function Home() {
       navigate("/", { replace: true });
     }
   };
-
-  const menuItems = [
-    {
-      text: "DashBoard",
-      path: "/home",
-      icon: <DashboardIcon sx={{ color: "white" }} />,
-      allowedRoles: [1],
-    },
-    {
-      text: " Tickets",
-      path: "/home/all-tickets",
-      icon: <ConfirmationNumberIcon sx={{ color: "white" }} />,
-      allowedRoles: [1, 2],
-    },
-    {
-      text: "My Support Tickets",
-      path: "/home/my-tickets",
-      icon: <ConfirmationNumberIcon sx={{ color: "white" }} />,
-      allowedRoles: [3],
-    },
-    {
-      text: "Assign Ticket To Agent",
-      path: "/home/assign-panel",
-      icon: <AssignmentIndIcon sx={{ color: "white" }} />,
-      allowedRoles: [1],
-    },
-    {
-      text: "Re-Assign Ticket",
-      path: "/home/ticket-history",
-      icon: <LowPriorityIcon sx={{ color: "white" }} />,
-      allowedRoles: [1, 2],
-    },
-    {
-      text: "Customer Management",
-      path: "/home/customers",
-      icon: <AssignmentIndIcon sx={{ color: "white" }} />,
-      allowedRoles: [1], // Only Admin
-    },
-    {
-      text: "Agent Management",
-      path: "/home/agent",
-      icon: <AssignmentIndIcon sx={{ color: "white" }} />,
-      allowedRoles: [1], // Only Admin
-    },
-  ];
-
-  const getHeaderTitle = () => {
-    if (roleId === 1) return "Admin DashBoard";
-    if (roleId === 2) return "Agent DashBoard";
-    if (roleId === 3) return "Customer Support Desk";
-    return "Support Desk";
-  };
-
-  const filteredMenuItems = menuItems.filter((item) =>
+  const headerTitle = ROLE_TITELS[roleId] || "Support Desk";
+  const filteredMenuItems = MENU_ITEMS.filter((item) =>
     item.allowedRoles.includes(roleId),
   );
-
   return (
     <>
       <AppGridContainer sx={{ height: "100vh" }}>
@@ -120,9 +63,8 @@ function Home() {
               >
                 <MenuIcon />
               </IconButton>
-
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                Welcome To {getHeaderTitle()}
+                Welcome To {headerTitle}
               </Typography>
             </Toolbar>
           </AppBar>
@@ -131,7 +73,6 @@ function Home() {
           <Outlet />
         </Box>
       </AppGridContainer>
-
       <Drawer
         anchor="left"
         open={isOpen}

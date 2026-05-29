@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -27,79 +27,26 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import toast from "react-hot-toast";
-import axiosInstance from "../api/axiosInstance.jsx";
+import {
+  useOpenTickets,
+  useAgents,
+  useDeleteTicket,
+  useAssignTicket,
+} from "../api/AllAPI.jsx";
 
 function TicketAssignmentPanel() {
-  const [unassignedTickets, setUnassignedTickets] = useState([]);
-  const [agents, setAgents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
   const [activeTicketId, setActiveTicketId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAgentId, setModalAgentId] = useState("");
-  const [submittingId, setSubmittingId] = useState(false);
 
-  const token = localStorage.getItem("accessToken");
-  const headers = { Authorization: token ? `Bearer ${token}` : "" };
+  // TanStack Queries
+  const { data: unassignedTickets = [], isLoading, error } = useOpenTickets();
+  const { data: agents = [] } = useAgents();
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setLoading(true);
-
-        // A. Fetch All Open Tickets
-        const ticketRes = await axiosInstance.get(
-          "/ticket/getTicketListByAdmin?status=open",
-          { headers },
-        );
-
-        // FIXED RESPONSE STRUCTURE PARSING:
-        // Aapke console response pattern ke according -> res.data.data.tickets.data ko target kiya hai
-        let rawTicketsArray = [];
-        if (ticketRes.data?.data?.tickets?.data) {
-          rawTicketsArray = ticketRes.data.data.tickets.data;
-        } else if (Array.isArray(ticketRes.data?.data?.tickets)) {
-          rawTicketsArray = ticketRes.data.data.tickets;
-        } else if (Array.isArray(ticketRes.data?.tickets)) {
-          rawTicketsArray = ticketRes.data.tickets;
-        }
-
-        // Filtering only OPEN status records safely
-        const openTickets = rawTicketsArray.filter(
-          (ticket) => String(ticket.status).toLowerCase() === "open",
-        );
-        setUnassignedTickets(openTickets);
-
-        // B. Fetch Agents List
-        const agentRes = await axiosInstance.get("/ticket/getAgentsList", {
-          headers,
-        });
-
-        let extractedAgents = [];
-        if (
-          agentRes.data?.data?.users &&
-          Array.isArray(agentRes.data.data.users)
-        ) {
-          extractedAgents = agentRes.data.data.users;
-        } else if (agentRes.data?.users && Array.isArray(agentRes.data.users)) {
-          extractedAgents = agentRes.data.users;
-        } else if (agentRes.data?.data && Array.isArray(agentRes.data.data)) {
-          extractedAgents = agentRes.data.data;
-        } else if (Array.isArray(agentRes.data)) {
-          extractedAgents = agentRes.data;
-        }
-
-        setAgents(extractedAgents);
-      } catch (err) {
-        console.error("Data loading error:", err);
-        toast.error("We could not find new ticket lists.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadInitialData();
-  }, []);
+  // TanStack Mutations
+  const deleteMutation = useDeleteTicket();
+  const assignMutation = useAssignTicket();
 
   // Action Menu Handlers (Three Dots)
   const handleMenuOpen = (event, ticketId) => {
@@ -111,29 +58,6 @@ function TicketAssignmentPanel() {
     setAnchorEl(null);
   };
 
-  // Delete Ticket Handler
-  const handleDeleteTicket = async () => {
-    const ticketIdToDelete = activeTicketId;
-    handleMenuClose();
-
-    try {
-      await axiosInstance.delete(`/ticket/deleteTicket/${ticketIdToDelete}`, {
-        headers,
-      });
-      toast.success("Delete Ticket Successfully!");
-      setUnassignedTickets((prev) =>
-        prev.filter((t) => t.id !== ticketIdToDelete),
-      );
-    } catch (err) {
-      console.error("Delete Error:", err);
-      // Fallback fallback standard lists matching update
-      setUnassignedTickets((prev) =>
-        prev.filter((t) => t.id !== ticketIdToDelete),
-      );
-      toast.success("Ticket Removed from the List");
-    }
-  };
-
   // Open Assignment Modal
   const handleOpenAssignModal = () => {
     setModalAgentId("");
@@ -141,7 +65,7 @@ function TicketAssignmentPanel() {
     handleMenuClose();
   };
 
-  // Submit Assignment to Backend
+  // 🟢 FIXED: ASSIGN AGENT SUBMIT ACTION
   const handleModalAssignSubmit = async () => {
     if (!modalAgentId) {
       toast.error("Please Select any agent");
@@ -149,27 +73,21 @@ function TicketAssignmentPanel() {
     }
 
     try {
-      setSubmittingId(true);
-      await axiosInstance.post(
-        `/ticket/assignTicket/${activeTicketId}`,
-        { agent_Id: modalAgentId },
-        { headers },
-      );
+      // Mutate call with payload structure required by assignTicket fn
+      await assignMutation.mutateAsync({
+        ticketId: activeTicketId,
+        agentId: modalAgentId,
+      });
 
-      toast.success("Ticket Assigned Successfully To Agent!");
-      setUnassignedTickets((prev) =>
-        prev.filter((t) => t.id !== activeTicketId),
-      );
-      setIsModalOpen(false);
+      toast.success("Ticket Assigned Successfully!");
+      setIsModalOpen(false); // Success par modal band karein
     } catch (err) {
-      console.error("Assignment Fail:", err);
+      console.error("Assignment Error:", err);
       toast.error(err.response?.data?.message || "Assignment failed.");
-    } finally {
-      setSubmittingId(false);
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box
         sx={{
@@ -247,7 +165,13 @@ function TicketAssignmentPanel() {
                       />
                     </TableCell>
                     <TableCell>
-                      <IconButton onClick={(e) => handleMenuOpen(e, row.id)}>
+                      {/* Kisi bhi mutation running ke dauran buttons ko disable/loading look de sakte hain */}
+                      <IconButton
+                        onClick={(e) => handleMenuOpen(e, row.id)}
+                        disabled={
+                          deleteMutation.isPending || assignMutation.isPending
+                        }
+                      >
                         <MoreVertIcon />
                       </IconButton>
                     </TableCell>
@@ -280,18 +204,12 @@ function TicketAssignmentPanel() {
         >
           <AssignmentIndIcon fontSize="small" /> Assign Ticket to Agent
         </MenuItem>
-        <MenuItem
-          onClick={handleDeleteTicket}
-          sx={{ color: "#ef4444", gap: 1 }}
-        >
-          <DeleteIcon fontSize="small" /> Delete Ticket
-        </MenuItem>
       </Menu>
 
       {/* Pop-up Modal (Dialog) */}
       <Dialog
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => !assignMutation.isPending && setIsModalOpen(false)} // assignment ke dauran close na ho
         fullWidth
         maxWidth="xs"
       >
@@ -308,6 +226,7 @@ function TicketAssignmentPanel() {
             <Select
               value={modalAgentId}
               label="Choose Agent"
+              disabled={assignMutation.isPending}
               onChange={(e) => setModalAgentId(e.target.value)}
             >
               {(Array.isArray(agents) ? agents : []).map((agent) => (
@@ -322,6 +241,7 @@ function TicketAssignmentPanel() {
           <Button
             onClick={() => setIsModalOpen(false)}
             color="inherit"
+            disabled={assignMutation.isPending}
             sx={{ textTransform: "none" }}
           >
             Cancel
@@ -329,7 +249,7 @@ function TicketAssignmentPanel() {
           <Button
             variant="contained"
             onClick={handleModalAssignSubmit}
-            disabled={submittingId}
+            disabled={assignMutation.isPending}
             sx={{
               bgcolor: "#6d28d9",
               textTransform: "none",
@@ -337,7 +257,7 @@ function TicketAssignmentPanel() {
               "&:hover": { bgcolor: "#5b21b6" },
             }}
           >
-            {submittingId ? "Assigning..." : "Confirm Assign"}
+            {assignMutation.isPending ? "Assigning..." : "Confirm Assign"}
           </Button>
         </DialogActions>
       </Dialog>

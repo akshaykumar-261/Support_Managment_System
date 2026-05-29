@@ -17,7 +17,6 @@ import CustomerTickets from "../afterAuth/CustomerTickets.jsx"; // Naya componen
 import UserManagementPanel from "../afterAuth/UserManagementPanel.jsx";
 import AgentManagmentPanel from "../afterAuth/AgentManagmentPanel.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
-
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) return <Navigate to="/" replace />;
@@ -115,16 +114,6 @@ const router = createBrowserRouter([
           </RoleGuard>
         ),
       },
-      // {
-      //   path: "agents",
-      //   element: (
-      //     <RoleGuard allowedRoles={[ROLES.ADMIN]}>
-      //       <UserManagementPanel initialTab={1} />
-      //     </RoleGuard>
-      //   ),
-      // },
-
-      // CUSTOMER ROUTES
       {
         path: "my-tickets",
         element: (

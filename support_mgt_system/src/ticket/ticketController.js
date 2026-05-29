@@ -96,7 +96,8 @@ export default class ticketController {
   async assignTicket(req, res) {
     const { id } = req.params;
     const { agent_Id } = req.body;
-    const ticket = await this.service.getTicketById(id);
+    const ticket = await this.service.getTicketByCustomer(id);
+  
     if (!ticket) {
       return sendResponse(
         res,

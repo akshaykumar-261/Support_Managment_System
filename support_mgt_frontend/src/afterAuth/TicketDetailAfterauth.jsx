@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -17,105 +16,64 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import toast from "react-hot-toast";
-import axiosInstance from "../api/axiosInstance.jsx";
 import TicketChat from "./TicketChat.jsx";
-
+import {
+  useGetSingleTicket,
+  useUpdateTicketStatus,
+  useUpdateTicketPriority,
+} from "../api/AllAPI.jsx";
+import {
+  STATUS_OPTIONS,
+  PRIORITY_OPTIONS,
+} from "../commonFunction/ticketActions.jsx";
 function TicketDetailAfterauth() {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  const [ticket, setTicket] = useState(null);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [updatingPriority, setUpdatingPriority] = useState(false);
   const token = localStorage.getItem("accessToken");
   const headers = { Authorization: token ? `Bearer ${token}` : "" };
-  const fetchTicketDetails = async () => {
-    try {
-      const response = await axiosInstance.get("/ticket/getTicketListByAdmin", {
-        headers,
-        params: { page: 1, limit: 1000 },
-      });
-
-      if (response.data?.data?.tickets?.data) {
-        const foundTicket = response.data.data.tickets.data.find(
-          (t) => String(t.id) === String(id),
-        );
-        if (foundTicket) setTicket(foundTicket);
-        else toast.error("Ticket Not Found");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error occurred while loading ticket details.");
-    }
-  };
-
-  useEffect(() => {
-    fetchTicketDetails();
-  }, [id]);
-
+  const { data: ticket, isLoading, error } = useGetSingleTicket(id);
+  const statusMutation = useUpdateTicketStatus();
+  const priorityMutation = useUpdateTicketPriority();
   // 2. UPDATE STATUS API CONSUMPTION
   const handleStatusChange = async (newStatus) => {
     try {
-      setUpdatingStatus(true);
-
-      // Backend Route: /updateTicketStatus/:id
-      const response = await axiosInstance.put(
-        `/ticket/updateTicketStatus/${id}`,
-        { status: newStatus }, // Body parameters as per schema
-        { headers },
-      );
-
-      // Frontend UI update bina page refresh kiye
-      setTicket((prevTicket) => ({
-        ...prevTicket,
+      await statusMutation.mutateAsync({
+        id,
         status: newStatus,
-      }));
+      });
 
       toast.success("Ticket status updated successfully!");
     } catch (err) {
-      console.error("Status Update Error:", err);
       toast.error(err.response?.data?.message || "Failed to update status.");
-    } finally {
-      setUpdatingStatus(false);
     }
   };
 
   // 3. UPDATE PRIORITY API CONSUMPTION
   const handlePriorityChange = async (newPriority) => {
     try {
-      setUpdatingPriority(true);
-
-      // Backend Route: /updateTicketPriority/:id
-      const response = await axiosInstance.put(
-        `/ticket/updateTicketPriority/${id}`,
-        { priority: newPriority }, // Body parameters as per schema
-        { headers },
-      );
-
-      // Frontend UI update
-      setTicket((prevTicket) => ({
-        ...prevTicket,
+      await priorityMutation.mutateAsync({
+        id,
         priority: newPriority,
-      }));
-
+      });
       toast.success("Ticket priority updated successfully!");
     } catch (err) {
-      console.error("Priority Update Error:", err);
       toast.error(err.response?.data?.message || "Failed to update priority.");
-    } finally {
-      setUpdatingPriority(false);
     }
   };
-  if (!ticket) {
+  if (isLoading) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
-        <Typography color="error" variant="h6" fontWeight="bold">
-          Ticket Not Found
-        </Typography>
+        <CircularProgress />
       </Box>
     );
   }
-
+  if (error) {
+    return (
+      <Box sx={{ p: 4, textAlign: "center" }}>
+        <Typography color="error">{error.message}</Typography>
+      </Box>
+    );
+  }
   return (
     <Box sx={{ p: 1 }}>
       <Button
@@ -146,12 +104,12 @@ function TicketDetailAfterauth() {
                 Ticket #{ticket.ticket_number || ticket.id}
               </Typography>
               <Chip
-                label={ticket.status?.toUpperCase().replace("_", " ")} 
+                label={ticket.status?.toUpperCase().replace("_", " ")}
                 color="primary"
                 variant="outlined"
               />
             </Stack>
-          <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 2 }} />
             <Typography
               variant="h6"
               fontWeight="bold"
@@ -190,12 +148,14 @@ function TicketDetailAfterauth() {
                 <Select
                   value={ticket.status || ""}
                   label="Update Status"
-                  disabled={updatingStatus}
+                  disabled={statusMutation.isPending}
                   onChange={(e) => handleStatusChange(e.target.value)}
                 >
-                  <MenuItem value="open">Open</MenuItem>
-                  <MenuItem value="in_progress">In Progress</MenuItem>
-                  <MenuItem value="closed">Closed</MenuItem>
+                  {STATUS_OPTIONS.map((item) => (
+                    <MenuItem key={item.value} value={item.value}>
+                      {item.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
 
@@ -205,12 +165,14 @@ function TicketDetailAfterauth() {
                 <Select
                   value={ticket.priority || ""}
                   label="Update Priority"
-                  disabled={updatingPriority}
+                  disabled={priorityMutation.isPending}
                   onChange={(e) => handlePriorityChange(e.target.value)}
                 >
-                  <MenuItem value="low">Low</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="high">High</MenuItem>
+                  {PRIORITY_OPTIONS.map((item) => (
+                    <MenuItem key={item.value} value={item.value}>
+                      {item.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
 
@@ -233,7 +195,6 @@ function TicketDetailAfterauth() {
               </Box>
             </Stack>
           </Card>
-          
         </Grid>
       </Grid>
     </Box>

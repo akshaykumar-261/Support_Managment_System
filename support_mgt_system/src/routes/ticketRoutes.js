@@ -62,7 +62,6 @@ route.get(
   checkRole("Super Admin","Agent"),
   asyncHandler(controller.getAgentsList.bind(controller)),
 );
-
 route.put(
   "/updateTicketPriority/:id",
   authorize,
