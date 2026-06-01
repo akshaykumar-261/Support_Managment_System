@@ -1,4 +1,4 @@
-import { useState } from "react";
+import{useState} from "react";
 import {
   Box,
   Typography,
@@ -23,9 +23,12 @@ import {
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useNavigate } from "react-router-dom";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import { useGetAllTickets } from "../api/AllAPI.jsx";
+import { useGetAllTickets } from "../api/apiHooks.jsx";
 import { getColor } from "../commonFunction/Color Function.jsx";
-import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "../commonFunction/ticketActions.jsx";
+import {
+  STATUS_OPTIONS,
+  PRIORITY_OPTIONS,
+} from "../commonFunction/ticketActions.jsx";
 function AllTicketsAfterauth() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("");
@@ -210,8 +213,7 @@ function AllTicketsAfterauth() {
                         </TableCell>
                         <TableCell>
                           <IconButton
-                            onClick={(e) => handleMenuOpen(e, row.id)}
-                          >
+                            onClick={(e) => handleMenuOpen(e, row.id)}>
                             <MoreVertIcon />
                           </IconButton>
                         </TableCell>
@@ -262,8 +264,7 @@ function AllTicketsAfterauth() {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
-        disableScrollLock
-      >
+        disableScrollLock>
         <MenuItem onClick={handleViewDetail} sx={{ gap: 1, color: "#6d28d9" }}>
           <VisibilityIcon fontSize="small" /> View Ticket Detail
         </MenuItem>

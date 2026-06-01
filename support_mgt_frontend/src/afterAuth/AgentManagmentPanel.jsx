@@ -25,33 +25,52 @@ import SearchIcon from "@mui/icons-material/Search";
 import CircleIcon from "@mui/icons-material/Circle";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import AddIcon from "@mui/icons-material/Add";
-import axiosInstance from "../api/axiosInstance.jsx";
 import toast from "react-hot-toast";
 
-// 🟢 React Hook Form aur Zod ke Import
+// React Hook Form aur Zod Validation Imports
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema } from "../beforeAuth/RegisterValidation.jsx"
+import { registerSchema } from "../beforeAuth/RegisterValidation.jsx";
+
+// Import Custom TanStack Queries Hooks
+import {
+  useGetAgentsManagedList,
+  useCreateAgentProfile,
+} from "../api/apiHooks.jsx";
 
 function AgentManagmentPanel() {
-  // API States
-  const [agents, setAgents] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-
   // Pagination States
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Filters States
+  // Filters Local Input States
   const [searchName, setSearchName] = useState("");
   const [searchEmail, setSearchEmail] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
 
-  // Modal Open State
+  // Confirmed Active Filter States (Triggers TanStack Refetch on Enter or Select Change)
+  const [appliedFilters, setAppliedFilters] = useState({
+    name: "",
+    email: "",
+    status: "all",
+  });
+
+  // Modal Control State
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 🟢 React Hook Form Initialization
+  // --- TanStack Integration Hooks Engine ---
+  const { data, isFetching: loading } = useGetAgentsManagedList({
+    page,
+    perPage: rowsPerPage,
+    name: appliedFilters.name,
+    email: appliedFilters.email,
+    status: appliedFilters.status,
+  });
+
+  const agents = data?.rows || [];
+  const totalCount = data?.count || 0;
+
+  const createAgentMutation = useCreateAgentProfile();
+  // React Hook Form Setup
   const {
     register,
     handleSubmit,
@@ -61,134 +80,38 @@ function AgentManagmentPanel() {
   } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      roleId: "2", // Hidden/Disabled field value setup
+      roleId: "2",
     },
   });
 
-  // Selected file ka live name watch karne ke liye
   const selectedFile = watch("profile_Img");
 
-  // Reset form when modal closes or opens
+  // Reset multi-form context structures when modal context states changes
   useEffect(() => {
     if (!isModalOpen) {
       reset();
     }
   }, [isModalOpen, reset]);
 
-  // Fetch Table Data
-  const fetchAgents = async () => {
-    setLoading(true);
-    try {
-      let url = `/users/getUser?page=${page + 1}&limit=${rowsPerPage}&role=Agent`;
-
-      if (searchName) url += `&name=${searchName}`;
-      if (searchEmail) url += `&email=${searchEmail}`;
-      if (statusFilter !== "all") url += `&is_active=${statusFilter}`;
-
-      const response = await axiosInstance.get(url);
-      if (response && response.data) {
-        let finalRows = [];
-        let finalCount = 0;
-        if (
-          response.data?.data?.data?.rows &&
-          Array.isArray(response.data.data.data.rows)
-        ) {
-          finalRows = response.data.data.data.rows;
-          finalCount = response.data.data.data.count;
-        } else if (
-          response.data?.data?.rows &&
-          Array.isArray(response.data.data.rows)
-        ) {
-          finalRows = response.data.data.rows;
-          finalCount = response.data.data.count;
-        } else if (response.data?.rows && Array.isArray(response.data.rows)) {
-          finalRows = response.data.rows;
-          finalCount = response.data.count;
-        } else if (
-          response.data?.data?.data &&
-          Array.isArray(response.data.data.data)
-        ) {
-          finalRows = response.data.data.data;
-          finalCount = response.data.data.data.length;
-        } else if (response.data?.data && Array.isArray(response.data.data)) {
-          finalRows = response.data.data;
-          finalCount = response.data.data.length;
-        } else if (Array.isArray(response.data)) {
-          finalRows = response.data;
-          finalCount = response.data.length;
-        }
-        if (finalRows.length === 0) {
-          const l1 = response.data;
-          const l2 = response.data?.data;
-          const l3 = response.data?.data?.data;
-
-          const scanForArray = (obj) => {
-            if (!obj || typeof obj !== "object") return null;
-            return Object.values(obj).find((val) => Array.isArray(val));
-          };
-
-          const foundArray =
-            scanForArray(l3) || scanForArray(l2) || scanForArray(l1);
-          const foundCount = l3?.count || l2?.count || l1?.count;
-
-          if (foundArray) {
-            finalRows = foundArray;
-            finalCount = foundCount || foundArray.length;
-          }
-        }
-        setAgents(finalRows);
-        setTotalCount(Number(finalCount) || finalRows.length);
-      }
-    } catch (error) {
-      console.error("Error fetching agent list:", error);
-      toast.error("Failed to load agent squad team");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAgents();
-  }, [page, rowsPerPage, statusFilter]);
-
-  // 🟢 ON SUBMIT METHOD (Same pattern as Practice.jsx but with role_Id = "2")
-  const onSubmit = async (data) => {
-    try {
-      // Safety profile check (Aapke flow ke mutabik mandatory check)
-      if (!data.profile_Img || data.profile_Img.length === 0) {
-        toast.error("Please select a profile image");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("email", data.email);
-      formData.append("address", data.address);
-      formData.append("phoneNo", data.phoneNo);
-      formData.append("password", data.password);
-      formData.append("role_Id", "2"); // 2 is Locked for Agent profile
-      formData.append("profile_Img", data.profile_Img[0]); // Zero index image pass execution
-
-      await axiosInstance.post("users/create", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      toast.success("Agent Account Created Successfully");
-      setIsModalOpen(false); // Modal band hoga
-      fetchAgents(); // Table refresh ho jayegi automatic
-    } catch (error) {
-      console.log("API Error", error);
-      toast.error(error.response?.data?.message || "Failed to create agent");
-    }
-  };
-
+  // Handle Search on Enter Key
   const handleSearchSubmit = (e) => {
     if (e.key === "Enter") {
       setPage(0);
-      fetchAgents();
+      setAppliedFilters((prev) => ({
+        ...prev,
+        name: searchName,
+        email: searchEmail,
+      }));
     }
+  };
+
+  // Handle Account Status Dropdown Changes
+  const handleStatusChange = (e) => {
+    setPage(0);
+    setAppliedFilters((prev) => ({
+      ...prev,
+      status: e.target.value,
+    }));
   };
 
   const handleChangePage = (event, newPage) => {
@@ -198,6 +121,37 @@ function AgentManagmentPanel() {
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  // Submit Handler Function Block execution
+  const onSubmit = async (formDataValues) => {
+    if (
+      !formDataValues.profile_Img ||
+      formDataValues.profile_Img.length === 0
+    ) {
+      toast.error("Please select a profile image");
+      return;
+    }
+
+    const multipartForm = new FormData();
+    multipartForm.append("name", formDataValues.name);
+    multipartForm.append("email", formDataValues.email);
+    multipartForm.append("address", formDataValues.address);
+    multipartForm.append("phoneNo", formDataValues.phoneNo);
+    multipartForm.append("password", formDataValues.password);
+    multipartForm.append("role_Id", "2");
+    multipartForm.append("profile_Img", formDataValues.profile_Img[0]);
+
+    createAgentMutation.mutate(multipartForm, {
+      onSuccess: () => {
+        toast.success("Agent Account Created Successfully");
+        setIsModalOpen(false);
+      },
+      onError: (error) => {
+        console.error("API Error context logging:", error);
+        toast.error(error.response?.data?.message || "Failed to create agent");
+      },
+    });
   };
 
   return (
@@ -211,6 +165,8 @@ function AgentManagmentPanel() {
         <Typography variant="h5" fontWeight="bold" color="#334155">
           Agent Workspace Management
         </Typography>
+        <br></br>
+
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -225,7 +181,7 @@ function AgentManagmentPanel() {
           Add New Agent
         </Button>
       </Box>
-
+      <br></br>
       {/* Filter Options Section */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 1 }}>
         <Grid container spacing={2} alignItems="center">
@@ -271,11 +227,8 @@ function AgentManagmentPanel() {
               select
               size="small"
               label="Account Status"
-              value={statusFilter}
-              onChange={(e) => {
-                setPage(0);
-                setStatusFilter(e.target.value);
-              }}
+              value={appliedFilters.status}
+              onChange={handleStatusChange}
             >
               <MenuItem value="all">All Profiles</MenuItem>
               <MenuItem value="1">Active Only</MenuItem>
@@ -285,7 +238,7 @@ function AgentManagmentPanel() {
         </Grid>
       </Paper>
 
-      {/* Data Table */}
+      {/* Data Table View */}
       <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2 }}>
         <Table>
           <TableHead sx={{ backgroundColor: "#f8fafc" }}>
@@ -382,7 +335,7 @@ function AgentManagmentPanel() {
         />
       </TableContainer>
 
-      {/* 🟢 MODAL WITH HANDLESUBMIT AND VALIDATIONS */}
+      {/* MODAL CONFIG DIALOG VIEW */}
       <Dialog
         open={isModalOpen}
         onClose={() => !isSubmitting && setIsModalOpen(false)}
@@ -393,11 +346,9 @@ function AgentManagmentPanel() {
           Add New Agent Profile
         </DialogTitle>
 
-        {/* Form component wrap with hook form submission */}
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <DialogContent dividers>
             <Grid container spacing={2}>
-              {/* Full Name */}
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -411,7 +362,6 @@ function AgentManagmentPanel() {
                 />
               </Grid>
 
-              {/* Email Address */}
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -425,7 +375,6 @@ function AgentManagmentPanel() {
                 />
               </Grid>
 
-              {/* Password */}
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -440,7 +389,6 @@ function AgentManagmentPanel() {
                 />
               </Grid>
 
-              {/* Phone Number */}
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -453,7 +401,6 @@ function AgentManagmentPanel() {
                 />
               </Grid>
 
-              {/* Full Address */}
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -467,7 +414,6 @@ function AgentManagmentPanel() {
                 />
               </Grid>
 
-              {/* Role ID (Pre-filled to 2 & Locked/Disabled) */}
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -476,13 +422,10 @@ function AgentManagmentPanel() {
                   label="Role ID"
                   value="2"
                   helperText="Locked to Agent Role (2)"
-                  InputProps={{
-                    readOnly: true,
-                  }}
+                  InputProps={{ readOnly: true }}
                 />
               </Grid>
 
-              {/* Profile Image File Picker wrapped with hook form input */}
               <Grid item xs={12} sm={6}>
                 <Typography
                   variant="body2"
@@ -496,7 +439,6 @@ function AgentManagmentPanel() {
                   variant="outlined"
                   fullWidth
                   startIcon={<CloudUploadIcon />}
-                  error={!!errors.profile_Img}
                   sx={{
                     textTransform: "none",
                     height: "40px",
@@ -532,14 +474,13 @@ function AgentManagmentPanel() {
               onClick={() => setIsModalOpen(false)}
               color="inherit"
               disabled={isSubmitting}
-              sx={{ textTransform: "none" }}
             >
               Cancel
             </Button>
             <Button
               variant="contained"
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || createAgentMutation.isLoading}
               sx={{
                 bgcolor: "#6d28d9",
                 textTransform: "none",
@@ -547,7 +488,9 @@ function AgentManagmentPanel() {
                 "&:hover": { bgcolor: "#5b21b6" },
               }}
             >
-              {isSubmitting ? "Creating..." : "Create Agent"}
+              {isSubmitting || createAgentMutation.isLoading
+                ? "Creating..."
+                : "Create Agent"}
             </Button>
           </DialogActions>
         </Box>

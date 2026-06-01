@@ -31,7 +31,7 @@ function Home() {
   const handleDrawerToggle = () => {
     setIsOpen(!isOpen);
   };
-  // --- LOGOUT HANDLER FUNCTION ---
+  
   const handleLogout = async () => {
     try {
       await axiosInstance.post("/logout");
@@ -51,7 +51,7 @@ function Home() {
     <>
       <AppGridContainer sx={{ height: "100vh" }}>
         <Box sx={{ flexGrow: 1 }}>
-          <AppBar position="static" sx={{ backgroundColor: "#6d28d9" }}>
+          <AppBar position="static" sx={{backgroundColor: "#6d28d9"}}>
             <Toolbar>
               <IconButton
                 size="large"
@@ -85,8 +85,7 @@ function Home() {
             flexDirection: "column",
             justifyContent: "space-between",
           },
-        }}
-      >
+        }}>
         {/* Top Content Area */}
         <Box>
           {/* Drawer Header with MenuIcon to CLOSE */}

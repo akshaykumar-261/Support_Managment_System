@@ -74,7 +74,6 @@ const socketHandler = (io) => {
 
         // Sirf request karne wale user ko history send karein
         socket.emit("load_chat_history", formattedMessages);
-        // -----------------------------------------------------------
       } catch (error) {
         console.error("Error loading chat history:", error.message);
         socket.emit("message_error", {

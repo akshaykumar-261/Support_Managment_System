@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -28,22 +28,27 @@ import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import SendIcon from "@mui/icons-material/Send";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import toast from "react-hot-toast";
-import axiosInstance from "../api/axiosInstance.jsx";
+
+// Import Custom TanStack Hooks
+import {
+  useAgents,
+  useGetTicketHistory,
+  useGetDepartments,
+  useGetTicketTimeline,
+  useReassignTicket,
+  useDeleteHistoryRecord,
+} from "../api/apiHooks.jsx";
 
 function TicketHistoryPanel() {
-  // Global Tables and Dropdowns States
-  const [globalLogs, setGlobalLogs] = useState([]);
-  const [agents, setAgents] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [selectedAgent, setSelectedAgent] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [searchTicketId, setSearchTicketId] = useState("");
 
-  // Reassign Form State (Strictly matching updated system flows)
+  // Reassign Form State
   const [reassignForm, setReassignForm] = useState({
     ticket_Id: "",
     assign_From: "",
     assign_To: "",
-    assign_By: "1", // Super Admin logged-in ID
+    assign_By: "1",
     action: "reassigned",
     old_Status: "open",
     new_Status: "open",
@@ -52,15 +57,24 @@ function TicketHistoryPanel() {
     from_Department: "",
     to_Department: "",
   });
-  const [formSubmitting, setFormSubmitting] = useState(false);
 
-  // Specific Ticket Timeline State (Supports alphanumeric text tracking)
-  const [searchTicketId, setSearchTicketId] = useState("");
-  const [specificTimeline, setSpecificTimeline] = useState([]);
-  const [timelineLoading, setTimelineLoading] = useState(false);
+  // --- TanStack Query Hooks Integration ---
+  const { data: agents = [], isLoading: agentsLoading } = useAgents();
+  const { data: departments = [], isLoading: deptsLoading } =
+    useGetDepartments();
+  const { data: globalLogs = [], isLoading: logsLoading } =
+    useGetTicketHistory(selectedAgent);
 
-  const token = localStorage.getItem("accessToken");
-  const headers = { Authorization: token ? `Bearer ${token}` : "" };
+  const {
+    data: specificTimeline = [],
+    isFetching: timelineLoading,
+    refetch: triggerFetchTimeline,
+  } = useGetTicketTimeline(searchTicketId);
+
+  const reassignMutation = useReassignTicket();
+  const deleteMutation = useDeleteHistoryRecord();
+
+  const loading = agentsLoading || deptsLoading || logsLoading;
 
   // Helper: Format raw database action logs to readable strings
   const renderActionText = (log) => {
@@ -114,104 +128,19 @@ function TicketHistoryPanel() {
     }
   };
 
-  // 1. Core Fetcher Engine
-  const fetchLogsLedger = async () => {
-    try {
-      const historyRes = await axiosInstance.get(
-        "/ticketHistory/getTicketList",
-        { headers },
-      );
-      if (historyRes.data?.data?.history) {
-        setGlobalLogs(historyRes.data.data.history);
-      }
-    } catch (err) {
-      console.error("Error loading master logs ledger:", err);
-    }
-  };
-
-  useEffect(() => {
-    const initializeDashboard = async () => {
-      try {
-        setLoading(true);
-        await fetchLogsLedger();
-
-        // Fetch dropdown agents data
-        const agentRes = await axiosInstance
-          .get("/ticket/getAgentsList", { headers })
-          .catch(() =>
-            axiosInstance.get("/ticketHistory/getAgentsList", { headers }),
-          );
-        if (agentRes.data?.data?.users) setAgents(agentRes.data.data.users);
-
-        // Fetch departments listing
-        const deptRes = await axiosInstance
-          .get("/department/getDepartmentList", { headers })
-          .catch(() => null);
-        if (deptRes?.data?.data?.departments) {
-          setDepartments(deptRes.data.data.departments);
-        } else {
-          // MODIFIED: Updated fallback parameters as requested
-          setDepartments([
-            { id: 1, name: "Billing" },
-            { id: 2, name: "Technical Support" },
-            { id: 3, name: "Sales" },
-          ]);
-        }
-      } catch (err) {
-        console.error("Initialization anomaly detected:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    initializeDashboard();
-  }, []);
-
-  // // 2. Filter Action: Agent Logs Stream Lookups
-  const handleAgentFilterChange = async (agentId) => {
-    setSelectedAgent(agentId);
-    if (!agentId) {
-      setLoading(true);
-      await fetchLogsLedger();
-      setLoading(false);
-      return;
-    }
-    try {
-      setLoading(true);
-      const res = await axiosInstance.get(
-        `/ticketHistory/getAgentHistory/${agentId}`,
-        { headers },
-      );
-      setGlobalLogs(res.data?.data?.history || []);
-    } catch (err) {
-      toast.error("Could not trace targeted agent logs stream.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 3. Search Action: Live Timeline Component Pull
-  const handleFetchTimeline = async () => {
+  // 1. Search Action: Live Timeline Component Pull
+  const handleFetchTimeline = () => {
     if (!searchTicketId.trim()) {
       toast.error("Enter a valid target Ticket ID reference.");
       return;
     }
-    try {
-      setTimelineLoading(true);
-      const res = await axiosInstance.get(
-        `/ticketHistory/getTicketHistoryList/${searchTicketId}`,
-        { headers },
-      );
-      setSpecificTimeline(res.data?.data?.ticketId || []);
+    triggerFetchTimeline().then(() => {
       toast.success("Lifecycle milestones synced.");
-    } catch (err) {
-      toast.error("Target lifecycle data extraction failure.");
-    } finally {
-      setTimelineLoading(false);
-    }
+    });
   };
 
-  // 4. Form Action: Execute Ticket Reassignment
-  const handleReassignSubmit = async (e) => {
+  // 2. Form Action: Execute Ticket Reassignment
+  const handleReassignSubmit = (e) => {
     e.preventDefault();
     if (
       !reassignForm.ticket_Id ||
@@ -224,17 +153,9 @@ function TicketHistoryPanel() {
       return;
     }
 
-    try {
-      setFormSubmitting(true);
-      const res = await axiosInstance.post(
-        "/ticketHistory/reAssignTicket",
-        reassignForm,
-        { headers },
-      );
-
-      if (res.status === 200 || res.status === 201) {
+    reassignMutation.mutate(reassignForm, {
+      onSuccess: () => {
         toast.success("Ticket reassigned & ledger stream updated!");
-        await fetchLogsLedger();
         setReassignForm({
           ticket_Id: "",
           assign_From: "",
@@ -248,34 +169,32 @@ function TicketHistoryPanel() {
           from_Department: "",
           to_Department: "",
         });
-      }
-    } catch (err) {
-      toast.error(
-        err.response?.data?.message ||
-          "Reassignment rejection received from backend API layers.",
-      );
-    } finally {
-      setFormSubmitting(false);
-    }
+      },
+      onError: (err) => {
+        toast.error(
+          err.response?.data?.message ||
+            "Reassignment rejection received from backend API layers.",
+        );
+      },
+    });
   };
 
-  // 5. Delete Action: Purge Specific Record
-  const handlePurgeRecord = async (logId) => {
+  // 3. Delete Action: Purge Specific Record
+  const handlePurgeRecord = (logId) => {
     if (
       !window.confirm(
         "Purge this operational history entry from active databases permanently?",
       )
     )
       return;
-    try {
-      await axiosInstance.delete(`/ticketHistory/deleteHistory/${logId}`, {
-        headers,
-      });
-      toast.success("Ledger entry wiped.");
-      setGlobalLogs((prev) => prev.filter((item) => item.id !== logId));
-    } catch (err) {
-      toast.error("Purge operations execution roadblock.");
-    }
+    deleteMutation.mutate(logId, {
+      onSuccess: () => {
+        toast.success("Ledger entry wiped.");
+      },
+      onError: () => {
+        toast.error("Purge operations execution roadblock.");
+      },
+    });
   };
 
   if (loading) {
@@ -450,7 +369,6 @@ function TicketHistoryPanel() {
                           })
                         }
                       >
-                        {/* MODIFIED: Updated values status schema map array */}
                         {["open", "in_progress", "closed"].map((s) => (
                           <MenuItem key={s} value={s}>
                             {s.replace("_", " ").toUpperCase()}
@@ -472,7 +390,6 @@ function TicketHistoryPanel() {
                           })
                         }
                       >
-                        {/* MODIFIED: Updated values status schema map array */}
                         {["open", "in_progress", "closed"].map((s) => (
                           <MenuItem key={s} value={s}>
                             {s.replace("_", " ").toUpperCase()}
@@ -495,7 +412,6 @@ function TicketHistoryPanel() {
                           })
                         }
                       >
-                        {/* MODIFIED: Stripped out critical from option configurations */}
                         {["low", "medium", "high"].map((p) => (
                           <MenuItem key={p} value={p}>
                             {p.toUpperCase()}
@@ -517,7 +433,6 @@ function TicketHistoryPanel() {
                           })
                         }
                       >
-                        {/* MODIFIED: Stripped out critical from option configurations */}
                         {["low", "medium", "high"].map((p) => (
                           <MenuItem key={p} value={p}>
                             {p.toUpperCase()}
@@ -532,7 +447,7 @@ function TicketHistoryPanel() {
                   type="submit"
                   fullWidth
                   variant="contained"
-                  disabled={formSubmitting}
+                  disabled={reassignMutation.isLoading}
                   endIcon={<SendIcon />}
                   sx={{
                     mt: 2,
@@ -542,14 +457,14 @@ function TicketHistoryPanel() {
                     "&:hover": { bgcolor: "#5b21b6" },
                   }}
                 >
-                  {formSubmitting
+                  {reassignMutation.isLoading
                     ? "Processing Route Allocation..."
                     : "Execute Reassignment"}
                 </Button>
               </form>
             </Card>
 
-            {/* CARD B: AUDIT LOOKUP FILTERS & TARGET TIMELINE LINE */}
+            {/* CARD B: AUDIT LOOKUP FILTERS & TARGET TIMELINE */}
             <Card
               sx={{
                 p: 3,
@@ -557,6 +472,25 @@ function TicketHistoryPanel() {
                 boxShadow: "0px 4px 20px rgba(0,0,0,0.05)",
               }}
             >
+              {/* Optional: Dropdown to filter master logs by Agent */}
+              <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                <InputLabel>Filter Ledger By Agent</InputLabel>
+                <Select
+                  value={selectedAgent}
+                  label="Filter Ledger By Agent"
+                  onChange={(e) => setSelectedAgent(e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>All Live Streams Ledger</em>
+                  </MenuItem>
+                  {agents.map((a) => (
+                    <MenuItem key={a.id} value={a.id}>
+                      {a.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
               <Divider sx={{ my: 2 }}>OR TRACK SYSTEM TIMELINE</Divider>
 
               <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
@@ -577,9 +511,10 @@ function TicketHistoryPanel() {
                   variant="contained"
                   size="small"
                   onClick={handleFetchTimeline}
+                  disabled={timelineLoading}
                   sx={{ bgcolor: "#475569", textTransform: "none" }}
                 >
-                  Track
+                  {timelineLoading ? "Tracking..." : "Track"}
                 </Button>
               </Stack>
 
@@ -607,47 +542,40 @@ function TicketHistoryPanel() {
                     <TimelineIcon fontSize="small" /> Ticket #{searchTicketId}{" "}
                     Milestones Trace:
                   </Typography>
-                  {timelineLoading ? (
-                    <CircularProgress size={20} />
-                  ) : (
-                    <Stack spacing={2}>
-                      {specificTimeline.map((item, idx) => {
-                        const style = getActionColor(item.type);
-                        return (
-                          <Box key={idx}>
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              alignItems="center"
-                              sx={{ mb: 0.5 }}
-                            >
-                              <Chip
-                                label={item.type?.toUpperCase()}
-                                size="small"
-                                sx={{
-                                  bgcolor: style.bg,
-                                  color: style.text,
-                                  fontWeight: "bold",
-                                  fontSize: "9px",
-                                }}
-                              />
-                              <Typography
-                                variant="caption"
-                                color="text.disabled"
-                              >
-                                {item.at
-                                  ? new Date(item.at).toLocaleString()
-                                  : ""}
-                              </Typography>
-                            </Stack>
-                            <Typography variant="body2" color="#334155">
-                              {renderActionText(item)}
+                  <Stack spacing={2}>
+                    {specificTimeline.map((item, idx) => {
+                      const style = getActionColor(item.type);
+                      return (
+                        <Box key={idx}>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                            sx={{ mb: 0.5 }}
+                          >
+                            <Chip
+                              label={item.type?.toUpperCase()}
+                              size="small"
+                              sx={{
+                                bgcolor: style.bg,
+                                color: style.text,
+                                fontWeight: "bold",
+                                fontSize: "9px",
+                              }}
+                            />
+                            <Typography variant="caption" color="text.disabled">
+                              {item.at
+                                ? new Date(item.at).toLocaleString()
+                                : ""}
                             </Typography>
-                          </Box>
-                        );
-                      })}
-                    </Stack>
-                  )}
+                          </Stack>
+                          <Typography variant="body2" color="#334155">
+                            {renderActionText(item)}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
                 </Box>
               )}
             </Card>

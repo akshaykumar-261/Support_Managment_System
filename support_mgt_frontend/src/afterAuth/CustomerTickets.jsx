@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -16,19 +16,23 @@ import {
   Chip,
   Grid,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ChatIcon from "@mui/icons-material/Chat";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import toast from "react-hot-toast";
 import { useAuth } from "../hooks/useAuth.jsx";
-import axiosInstance from "../api/axiosInstance.jsx";
 import TicketChat from "./TicketChat.jsx";
+
+// Import Custom TanStack Hooks
+import {
+  useGetCustomerTickets,
+  useCreateCustomerTicket,
+} from "../api/apiHooks.jsx";
 
 function CustomerTickets() {
   const { userId } = useAuth();
-  const [tickets, setTickets] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
 
@@ -38,55 +42,28 @@ function CustomerTickets() {
     priority: "low",
   });
 
-  // 1. FETCH TICKETS USING AXIOS
-  const fetchCustomerTickets = async () => {
-    try {
-      const response = await axiosInstance.get(
-        `/ticket/getTicketByCustomer/${userId}`,
-      );
+  // --- TanStack Hooks Integration ---
+  const { data: tickets = [], isLoading: ticketsLoading } =
+    useGetCustomerTickets(userId);
+  const createTicketMutation = useCreateCustomerTicket();
 
-      if (response.data && response.data.data) {
-        const ticketData = response.data.data.ticket;
-        setTickets(
-          Array.isArray(ticketData)
-            ? ticketData
-            : ticketData
-              ? [ticketData]
-              : [],
-        );
-
-        // FIX: Auto-selection logic yahan se hata diya hai taaki load hote hi chat open na ho.
-      }
-    } catch (error) {
-      console.error("Error fetching tickets:", error);
-      toast.error("Failed to load tickets");
-    }
-  };
-
-  useEffect(() => {
-    if (userId) fetchCustomerTickets();
-  }, [userId]);
-
-  // 2. SUBMIT / CREATE NEW TICKET
-  const handleCreateTicket = async (e) => {
+  // Submit / Create New Ticket Action
+  const handleCreateTicket = (e) => {
     e.preventDefault();
-    try {
-      const response = await axiosInstance.post(
-        "/ticket/createTicket",
-        formData,
-      );
 
-      if (response.status === 200 || response.status === 201) {
+    createTicketMutation.mutate(formData, {
+      onSuccess: () => {
         toast.success("Ticket Created Successfully!");
         setOpenModal(false);
         setFormData({ title: "", description: "", priority: "low" });
-        fetchCustomerTickets();
-      }
-    } catch (error) {
-      console.error("Create ticket error:", error);
-      toast.error(error.response?.data?.message || "Failed to create ticket");
-    }
+      },
+      onError: (error) => {
+        console.error("Create ticket error:", error);
+        toast.error(error.response?.data?.message || "Failed to create ticket");
+      },
+    });
   };
+
   return (
     <Box>
       <Box
@@ -138,7 +115,13 @@ function CustomerTickets() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {tickets.length === 0 ? (
+                {ticketsLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
+                      <CircularProgress size={24} sx={{ color: "#6d28d9" }} />
+                    </TableCell>
+                  </TableRow>
+                ) : tickets.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} align="center">
                       No tickets raised yet.
@@ -152,7 +135,6 @@ function CustomerTickets() {
                       <TableRow
                         key={ticket.id}
                         hover
-                        // FIX: Row level onClick hata diya, ab row par click karne se chat open nahi hogi
                         sx={{
                           backgroundColor: isSelected ? "#f3e8ff" : "inherit",
                           "&:hover": {
@@ -191,13 +173,10 @@ function CustomerTickets() {
                               justifyContent: "center",
                             }}
                           >
-                            {/* FIX: Sirf is IconButton par click karne se chat set hogi */}
                             <IconButton
                               size="small"
-                              color="primary"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Agar pehle se wahi open hai, toh toggle off kar do, nahi toh open karo
                                 setSelectedTicketId(
                                   isSelected ? null : ticket.id,
                                 );
@@ -227,7 +206,7 @@ function CustomerTickets() {
           </TableContainer>
         </Grid>
 
-        {/* RIGHT SIDE CHAT WINDOW (SIRF CHAT WINDOW DIKHAYEGA TICKET SELECT HONE PAR) */}
+        {/* RIGHT SIDE CHAT WINDOW */}
         {selectedTicketId && (
           <Grid item xs={12} md={5}>
             <Box sx={{ mt: -3 }}>
@@ -252,7 +231,6 @@ function CustomerTickets() {
                   {tickets.find((t) => t.id === selectedTicketId)
                     ?.ticket_number || selectedTicketId}
                 </Typography>
-                {/* Ek close button chat window ko band karne ke liye */}
                 <Button
                   size="small"
                   onClick={() => setSelectedTicketId(null)}
@@ -269,7 +247,10 @@ function CustomerTickets() {
       </Grid>
 
       {/* CREATE TICKET MODAL POPUP */}
-      <Modal open={openModal} onClose={() => setOpenModal(false)}>
+      <Modal
+        open={openModal}
+        onClose={() => !createTicketMutation.isLoading && setOpenModal(false)}
+      >
         <Box
           sx={{
             position: "absolute",
@@ -293,6 +274,7 @@ function CustomerTickets() {
               required
               size="small"
               sx={{ mb: 2 }}
+              disabled={createTicketMutation.isLoading}
               value={formData.title}
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
@@ -306,6 +288,7 @@ function CustomerTickets() {
               rows={4}
               size="small"
               sx={{ mb: 2 }}
+              disabled={createTicketMutation.isLoading}
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
@@ -317,6 +300,7 @@ function CustomerTickets() {
               label="Priority Level"
               size="small"
               sx={{ mb: 3 }}
+              disabled={createTicketMutation.isLoading}
               value={formData.priority}
               onChange={(e) =>
                 setFormData({ ...formData, priority: e.target.value })
@@ -327,13 +311,21 @@ function CustomerTickets() {
               <MenuItem value="high">High</MenuItem>
             </TextField>
             <Box sx={{ display: "flex", justifyContent: "end", gap: 2 }}>
-              <Button onClick={() => setOpenModal(false)}>Cancel</Button>
+              <Button
+                onClick={() => setOpenModal(false)}
+                disabled={createTicketMutation.isLoading}
+              >
+                Cancel
+              </Button>
               <Button
                 type="submit"
                 variant="contained"
+                disabled={createTicketMutation.isLoading}
                 sx={{ bgcolor: "#6d28d9", "&:hover": { bgcolor: "#5b21b6" } }}
               >
-                Submit Ticket
+                {createTicketMutation.isLoading
+                  ? "Submitting..."
+                  : "Submit Ticket"}
               </Button>
             </Box>
           </form>

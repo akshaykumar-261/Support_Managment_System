@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -18,127 +18,57 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CircleIcon from "@mui/icons-material/Circle";
-import axiosInstance from "../api/axiosInstance.jsx";
-import toast from "react-hot-toast";
+
+// Named Imports using curly braces to avoid "provide an export named default" error
+import { useGetCustomersManagedList } from "../api/apiHooks.jsx";
 
 function UserManagementPanel() {
-  // API States
-  const [users, setUsers] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-
   // Pagination States
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Filters States
+  // Filters Local UI States
   const [searchName, setSearchName] = useState("");
   const [searchEmail, setSearchEmail] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
 
-  const fetchCustomers = async () => {
-    setLoading(true);
-    try {
-      let url = `/users/getUser?page=${page + 1}&limit=${rowsPerPage}&role=Customer`;
+  // Applied Query Filters State (Triggers Refetch only when changed)
+  const [appliedFilters, setAppliedFilters] = useState({
+    name: "",
+    email: "",
+    status: "all",
+  });
 
-      if (searchName) url += `&name=${searchName}`;
-      if (searchEmail) url += `&email=${searchEmail}`;
-      if (statusFilter !== "all") url += `&is_active=${statusFilter}`;
+  // --- TanStack Hooks Integration Engine ---
+  const { data, isFetching: loading } = useGetCustomersManagedList({
+    page,
+    perPage: rowsPerPage,
+    name: appliedFilters.name,
+    email: appliedFilters.email,
+    status: appliedFilters.status,
+  });
 
-      const response = await axiosInstance.get(url);
+  const users = data?.rows || [];
+  const totalCount = data?.count || 0;
 
-      // API Debugging Logs (Aapko console mein dikhega exact structure)
-      console.log("1. AXIOS RAW RESPONSE:", response);
-      console.log("2. RESPONSE.DATA LEVEL:", response?.data);
-
-      if (response && response.data) {
-        let finalRows = [];
-        let finalCount = 0;
-
-        // --- DEEP NESTING EXTRACTION LOGIC (Foolproof) ---
-
-        // Case A: Deep envelope -> response.data.data.data.rows
-        if (
-          response.data?.data?.data?.rows &&
-          Array.isArray(response.data.data.data.rows)
-        ) {
-          finalRows = response.data.data.data.rows;
-          finalCount = response.data.data.data.count;
-        }
-        // Case B: Medium envelope -> response.data.data.rows
-        else if (
-          response.data?.data?.rows &&
-          Array.isArray(response.data.data.rows)
-        ) {
-          finalRows = response.data.data.rows;
-          finalCount = response.data.data.count;
-        }
-        // Case C: Standard envelope -> response.data.rows
-        else if (response.data?.rows && Array.isArray(response.data.rows)) {
-          finalRows = response.data.rows;
-          finalCount = response.data.count;
-        }
-        // Case D: Double Nested Array -> response.data.data.data = [...]
-        else if (
-          response.data?.data?.data &&
-          Array.isArray(response.data.data.data)
-        ) {
-          finalRows = response.data.data.data;
-          finalCount = response.data.data.data.length;
-        }
-        // Case E: Single Nested Array -> response.data.data = [...]
-        else if (response.data?.data && Array.isArray(response.data.data)) {
-          finalRows = response.data.data;
-          finalCount = response.data.data.length;
-        }
-        // Case F: Naked Array -> response.data = [...]
-        else if (Array.isArray(response.data)) {
-          finalRows = response.data;
-          finalCount = response.data.length;
-        }
-
-        // --- ULTRA BLACK-BOX FALLBACK ---
-        // Agar upar ka koi pattern match nahi hua, toh pure object tree ko auto-scan karo array dhoondne ke liye
-        if (finalRows.length === 0) {
-          const l1 = response.data;
-          const l2 = response.data?.data;
-          const l3 = response.data?.data?.data;
-
-          const scanForArray = (obj) => {
-            if (!obj || typeof obj !== "object") return null;
-            return Object.values(obj).find((val) => Array.isArray(val));
-          };
-
-          const foundArray =
-            scanForArray(l3) || scanForArray(l2) || scanForArray(l1);
-          const foundCount = l3?.count || l2?.count || l1?.count;
-
-          if (foundArray) {
-            finalRows = foundArray;
-            finalCount = foundCount || foundArray.length;
-          }
-        }
-
-        setUsers(finalRows);
-        setTotalCount(Number(finalCount) || finalRows.length);
-      }
-    } catch (error) {
-      console.error("Error fetching customer list:", error);
-      toast.error("Failed to load customer registry records");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCustomers();
-  }, [page, rowsPerPage, statusFilter]);
-
+  // Handle Search Input Submission
   const handleSearchSubmit = (e) => {
     if (e.key === "Enter") {
       setPage(0);
-      fetchCustomers();
+      setAppliedFilters((prev) => ({
+        ...prev,
+        name: searchName,
+        email: searchEmail,
+      }));
     }
+  };
+
+  // Handle Dropdown Filter Change
+  const handleStatusChange = (e) => {
+    setPage(0);
+    setAppliedFilters((prev) => ({
+      ...prev,
+      status: e.target.value,
+    }));
   };
 
   const handleChangePage = (event, newPage) => {
@@ -201,11 +131,8 @@ function UserManagementPanel() {
               select
               size="small"
               label="Account Status"
-              value={statusFilter}
-              onChange={(e) => {
-                setPage(0);
-                setStatusFilter(e.target.value);
-              }}
+              value={appliedFilters.status}
+              onChange={handleStatusChange}
             >
               <MenuItem value="all">All Profiles</MenuItem>
               <MenuItem value="1">Active Only</MenuItem>
@@ -244,7 +171,7 @@ function UserManagementPanel() {
                   Fetching registry records...
                 </TableCell>
               </TableRow>
-            ) : !users || users.length === 0 ? (
+            ) : users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
                   No target customers match your filters.

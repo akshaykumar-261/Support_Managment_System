@@ -15,8 +15,7 @@ import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import CachedIcon from "@mui/icons-material/Cached";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-
-import { useDashboard } from "../api/AllAPI.jsx";
+import { useDashboard } from "../api/apiHooks.jsx";
 
 const StatCard = ({
   label,
@@ -39,7 +38,7 @@ const StatCard = ({
         "&:hover": {
           transform: "translateY(-5px)",
           boxShadow: "0px 12px 24px rgba(109, 40, 217, 0.08)",
-          borderColor: "#6d28d9",
+     borderColor: "#6d28d9",
         },
       }}
     >
@@ -127,9 +126,9 @@ function DashboardAfterauth() {
   const closed = dashboardData?.closeTickets || 0;
   const openPercent = total > 0 ? `${Math.round((open / total) * 100)}%` : "0%";
   const progressPercent =
-    total > 0 ? `${Math.round((inProgress / total) * 100)}%` : "0%";
+  total > 0 ? `${Math.round((inProgress / total) * 100)}%` : "0%";
   const closedPercent =
-    total > 0 ? `${Math.round((closed / total) * 100)}%` : "0%";
+  total > 0 ? `${Math.round((closed / total) * 100)}%` : "0%";
   return (
     <Box sx={{ p: 1 }}>
       <Box sx={{ mb: 4 }}>
@@ -138,8 +137,7 @@ function DashboardAfterauth() {
           sx={{
             fontWeight: 800,
             color: "#0f172a",
-          }}
-        >
+          }}>
           Overview Analytics
         </Typography>
 
@@ -148,8 +146,7 @@ function DashboardAfterauth() {
           sx={{
             color: "#64748b",
             mt: 0.5,
-          }}
-        >
+          }}>
           Live operational stats and ticket metrics overview.
         </Typography>
       </Box>
@@ -162,8 +159,7 @@ function DashboardAfterauth() {
           icon={GroupsIcon}
           bgLight="#f3e8ff"
           iconColor="#6d28d9"
-          percent="100%"
-        />
+          percent="100%"/>
 
         <StatCard
           label="Open Tickets"
@@ -172,8 +168,7 @@ function DashboardAfterauth() {
           icon={AssignmentTurnedInIcon}
           bgLight="#dcfce7"
           iconColor="#22c55e"
-          percent={openPercent}
-        />
+          percent={openPercent}/>
 
         <StatCard
           label="In Progress"
@@ -182,8 +177,7 @@ function DashboardAfterauth() {
           icon={CachedIcon}
           bgLight="#fef9c3"
           iconColor="#d97706"
-          percent={progressPercent}
-        />
+          percent={progressPercent}/>
 
         <StatCard
           label="Closed Tickets"
@@ -192,8 +186,7 @@ function DashboardAfterauth() {
           icon={CheckCircleIcon}
           bgLight="#f1f5f9"
           iconColor="#64748b"
-          percent={closedPercent}
-        />
+          percent={closedPercent}/>
       </Grid>
     </Box>
   );

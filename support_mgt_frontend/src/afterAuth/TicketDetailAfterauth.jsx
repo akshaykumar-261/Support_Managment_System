@@ -21,7 +21,7 @@ import {
   useGetSingleTicket,
   useUpdateTicketStatus,
   useUpdateTicketPriority,
-} from "../api/AllAPI.jsx";
+} from "../api/apiHooks.jsx";
 import {
   STATUS_OPTIONS,
   PRIORITY_OPTIONS,
@@ -79,8 +79,7 @@ function TicketDetailAfterauth() {
       <Button
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate(-1)}
-        sx={{ color: "#6d28d9", mb: 3, fontWeight: "bold" }}
-      >
+        sx={{ color: "#6d28d9", mb: 3, fontWeight: "bold" }}>
         Back to All Tickets
       </Button>
 

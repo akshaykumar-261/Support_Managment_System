@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import {
   Box,
@@ -12,9 +12,7 @@ import {
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import toast from "react-hot-toast";
-
 const SOCKET_SERVER_URL = "http://localhost:8088";
-
 function TicketChat({ ticketId }) {
   const [messages, setMessages] = useState([]);
   const [typedMessage, setTypedMessage] = useState("");
@@ -22,13 +20,10 @@ function TicketChat({ ticketId }) {
   const [currentUserId, setCurrentUserId] = useState(null); 
   const socketRef = useRef(null);
   const chatEndRef = useRef(null);
-
   const token = localStorage.getItem("accessToken");
-
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
   // 1. Token decode logic with Integer Conversion
   useEffect(() => {
     if (token) {
@@ -52,7 +47,6 @@ function TicketChat({ ticketId }) {
       }
     }
   }, [token]);
-
   useEffect(() => {
     if (!ticketId || !token) return;
 
@@ -299,3 +293,8 @@ function TicketChat({ ticketId }) {
 }
 
 export default TicketChat;
+
+
+
+
+
