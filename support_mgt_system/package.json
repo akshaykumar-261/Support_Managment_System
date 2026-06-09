@@ -24,6 +24,7 @@
     "crypto": "^1.0.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "firebase-admin": "^14.0.0",
     "fs": "^0.0.1-security",
     "http": "^0.0.1-security",
     "joi": "^18.2.1",

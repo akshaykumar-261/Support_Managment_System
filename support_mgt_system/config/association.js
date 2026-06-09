@@ -5,6 +5,7 @@ import TicketModel from "../dataBase/models/ticket.js";
 import NotificationModel from "../dataBase/models/notification.js";
 import TicketMessageModel from "../dataBase/models/ticketMessage.js";
 import TicketHistoryModel from "../dataBase/models/ticketHistory.js";
+import UserDeviceModel from "../dataBase/models/userDevice.js";
 // User Associations
 UserModel.belongsTo(RoleModel, {
   foreignKey: "role_Id",
@@ -62,4 +63,14 @@ TicketHistoryModel.belongsTo(DepartmentModel, {
 });
 UserModel.hasMany(TicketMessageModel, {
   foreignKey: "sender_Id"
+});
+//User --> UserDevice Associations
+UserModel.hasMany(UserDeviceModel, {
+  foreignKey: "user_id",
+  as: "devices",
+});
+// UserDevice  -->  User Associations
+UserDeviceModel.belongsTo(UserModel, {
+  foreignKey: "user_id",
+  as: "user",
 });
