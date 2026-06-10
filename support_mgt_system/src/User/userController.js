@@ -110,7 +110,7 @@ export default class userController {
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.USER_DELETED);
   }
   async login(req, res) {
-    const { email, password } = req.body;
+    const { email, password,device_token, device_type, device_id} = req.body;
     const userInDb = await this.service.getByEmail(email);
     if (!userInDb) {
       return sendResponse(
@@ -132,6 +132,15 @@ export default class userController {
     await this.service.updateUser(userInDb.id, {
       refreshToken,
     });
+    if (device_token) {
+        await this.Models.UserDevices.create({
+        user_id: userInDb.id,
+        device_token: device_token,
+        device_type: device_type || "android",
+        device_id: device_id,
+        is_login: true,
+      });
+    }
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGIN_SUCCESS, {
       accessToken,
       refreshToken,
@@ -179,4 +188,32 @@ export default class userController {
       return sendResponse(res, STATUS_CODE.SERVER_ERROR, authMessage.INVALID);
     }
   }
+  async getProfile(req, res) {
+  try {
+    const userId = req.user.id;
+
+    const user = await this.service.getProfile(userId);
+
+    if (!user) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.USER_NOT_FOUND
+      );
+    }
+
+    return sendResponse(
+      res,
+      STATUS_CODE.SUCCESS,
+      "Profile fetched successfully",
+      user
+    );
+  } catch (error) {
+    return sendResponse(
+      res,
+      STATUS_CODE.SERVER_ERROR,
+      error.message
+    );
+  }
+}
 }

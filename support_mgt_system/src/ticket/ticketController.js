@@ -7,34 +7,54 @@ import {
 import { sendResponse } from "../helper/responseHandler.js";
 import { STATUS_CODE } from "../helper/statusCode.js";
 import * as commanFunction from "../../utility/commanFunction.js";
+import { sendPushNotification } from "../helper/notificationFunction.js";
 export default class ticketController {
   async init(db) {
     this.service = new TicketService();
     this.Model = db.models;
     await this.service.init(db);
   }
-  async ticketCreate(req, res) {
-    const ticketNo = commanFunction.generateTicketNumber();
-    if (!req.user || !(req.user.id || req.user.dataValues?.id)) {
-      return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
-    }
-
-    const customerId = req.user.id || req.user.dataValues?.id;
-
-    const payload = {
-      ...req.body,
-      ticket_number: ticketNo,
-      customer_Id: customerId,
-    };
-
-    const ticket = await this.service.createTicket(payload);
-    return sendResponse(
-      res,
-      STATUS_CODE.SUCCESS,
-      TICKET_MESSAGE.TICKET_CREATE,
-      { ticket },
-    );
+async ticketCreate(req, res) {
+  const ticketNo = commanFunction.generateTicketNumber();
+  if (!req.user || !(req.user.id || req.user.dataValues?.id)) {
+    return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
   }
+  const customerId = req.user.id || req.user.dataValues?.id;
+  const customerName = req.user.name || req.user.dataValues?.name || "A Customer";
+
+  const payload = {
+    ...req.body,
+    ticket_number: ticketNo,
+    customer_Id: customerId,
+  };
+
+  const ticket = await this.service.createTicket(payload);
+  try {
+    const adminIds = await this.service.getSuperAdminIds();
+    
+    if (adminIds.length > 0) {
+      const adminTokens = await this.service.getUserDeviceTokens(adminIds);
+      
+      if (adminTokens.length > 0) {
+        const title = "New Ticket Created!";
+        const body = `${customerName} has created a new ticket #${ticketNo}.`;
+        const dataPayload = { ticket_id: String(ticket.id), action: "new_ticket" };
+
+        adminTokens.forEach(token => {
+          sendPushNotification(token, title, body, dataPayload);
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error in sending admin ticket notification:", err);
+  }
+  return sendResponse(
+    res,
+    STATUS_CODE.SUCCESS,
+    TICKET_MESSAGE.TICKET_CREATE,
+    { ticket },
+  );
+}
   async closeTicket(req, res) {
     const { id } = req.body;
     const ticket = await this.service.getTicketById(id);
@@ -109,6 +129,19 @@ export default class ticketController {
       current_Agent: agent_Id,
       status: "in_progress",
     });
+    try {
+      const customerTokens = await this.service.getUserDeviceTokens(ticket.customer_Id);
+      if (customerTokens.length > 0) {
+        const title = "Ticket Assigned";
+        const body = `Your ticket #${ticket.ticket_number} has been assigned to an agent`;
+        const dataPayload = { ticket_id: String(id), action: "ticket_assigned" };
+        customerTokens.forEach(token => {
+          sendPushNotification(token, title, body, dataPayload);
+        });
+      }
+    } catch (err) {
+      console.error("Error in sending customer assignment notification:", err);
+    }
     return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.TICKET_ASSIGN);
   }
 

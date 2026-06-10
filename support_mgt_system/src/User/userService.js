@@ -93,4 +93,24 @@ export default class UserService {
 
     return { count, rows };
   }
+  async getProfile(id) {
+    return await this.Model.Users.findOne({
+      where: {
+        id,
+        deletedAt: null,
+      },
+      attributes: {
+        exclude: [
+          "password",
+          "otp",
+          "refreshToken",
+          "createdAt",
+          "updatedAt",
+          "deletedAt",
+          "is_active",
+          "department_Id",
+        ],
+      },
+    });
+  }
 }

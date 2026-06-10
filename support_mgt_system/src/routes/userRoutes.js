@@ -5,6 +5,7 @@ import { asyncHandler } from "../../utility/commanFunction.js";
 import Users from "../../dataBase/models/user.js";
 import Roles from "../../dataBase/models/roles.js";
 import Departments from "../../dataBase/models/department.js";
+import UserDevices from "../../dataBase/models/userDevice.js";
 import authorize from "../middleweare/authmiddleweare.js";
 import checkRole from "../middleweare/roleBaseMiddleweare.js";
 import {
@@ -16,7 +17,7 @@ const router = express.Router();
 const controller = new userController();
 const role = checkRole("Super Admin");
 // Initialize controller with DB models so service methods are available
-controller.init({ models: { Users, Roles, Departments } });
+controller.init({ models: { Users, Roles, Departments, UserDevices } });
 router.post(
   "/create",
   //authorize,
@@ -44,6 +45,12 @@ router.get(
   authorize,
   role,
   asyncHandler(controller.getUserList.bind(controller)),
+);
+router.get(
+  "/profile",
+  authorize,
+  checkRole("Super Admin", "Customer", "Agent"),
+  asyncHandler(controller.getProfile.bind(controller))
 );
 router.post("/login", asyncHandler(controller.login.bind(controller)));
 router.post("/refreshToken", asyncHandler(controller.refreshToken.bind(controller)));

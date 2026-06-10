@@ -152,4 +152,36 @@ export default class TicketService {
       inProgressTickets,
     };
   }
+
+async getUserDeviceTokens(userIds) {
+  // agar single id hai toh array me convert kar dega
+  const ids = Array.isArray(userIds) ? userIds : [userIds];
+  const devices = await this.Model.UserDevices.findAll({
+    where: {
+      user_id: { [Op.in]: ids },
+      is_login: true,
+      device_token: { [Op.ne]: null }
+    },
+    attributes: ["device_token"],
+    raw: true
+  });
+  
+  return devices.map(d => d.device_token);
+}
+
+// Super Admin ki IDs nikalne ke liye method
+async getSuperAdminIds() {
+  const admins = await this.Model.UserModel.findAll({
+    include: [
+      {
+        model: this.Model.RoleModel,
+        where: { name: "Super Admin" },
+        attributes: []
+      }
+    ],
+    attributes: ["id"],
+    raw: true
+  });
+  return admins.map(a => a.id);
+}
 }

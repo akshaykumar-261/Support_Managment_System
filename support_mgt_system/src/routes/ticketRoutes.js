@@ -5,6 +5,7 @@ import UserModel from "../../dataBase/models/user.js";
 import RoleModel from "../../dataBase/models/roles.js";
 import TicketModel from "../../dataBase/models/ticket.js";
 import DepartmentModel from "../../dataBase/models/department.js";
+import UserDevices from "../../dataBase/models/userDevice.js";
 import authorize from "../middleweare/authmiddleweare.js";
 import checkRole from "../middleweare/roleBaseMiddleweare.js";
 import {
@@ -17,7 +18,7 @@ const route = express.Router();
 const controller = new ticketController();
 const role = checkRole("Customer");
 controller.init({
-  models: { UserModel, RoleModel, TicketModel, DepartmentModel },
+  models: { UserModel, RoleModel, TicketModel, DepartmentModel,UserDevices },
 });
 route.post(
   "/createTicket",
