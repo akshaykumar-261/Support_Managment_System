@@ -46,6 +46,13 @@ export default class TicketService {
       raw: true,
     });
   };
+  getTicketByAgentId = async (agentId) => {
+    return this.Model.TicketModel.findAll({
+      where: {
+        current_Agent: agentId
+      }
+    })
+  }
   async createTicket(payload) {
     const ticket = await this.Model.TicketModel.create(payload);
     return ticket;

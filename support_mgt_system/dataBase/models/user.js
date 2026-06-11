@@ -42,7 +42,9 @@ const UserModel = sequelize.define(
     otp: {
       type: DataTypes.INTEGER,
     },
-
+    otp_expire: {
+      type: DataTypes.DATE,
+    },
     refreshToken: {
       type: DataTypes.TEXT,
     },
@@ -71,8 +73,8 @@ const UserModel = sequelize.define(
         if (user.password) {
           user.password = await bcrypt.hash(user.password, 10);
         }
-       }
-    }
+      },
+    },
   },
 );
 

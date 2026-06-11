@@ -115,7 +115,7 @@ async ticketCreate(req, res) {
   }
   async assignTicket(req, res) {
     const { id } = req.params;
-    const { agent_Id } = req.body;
+    const { agent_Id,department_Id } = req.body;
     const ticket = await this.service.getTicketByCustomer(id);
   
     if (!ticket) {
@@ -127,6 +127,7 @@ async ticketCreate(req, res) {
     }
     await this.service.updateTicket(id, {
       current_Agent: agent_Id,
+      department_Id:department_Id,
       status: "in_progress",
     });
     try {
@@ -183,6 +184,26 @@ async ticketCreate(req, res) {
       priority,
     });
     return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.PRIORITY);
+  }
+  async getTicketByAgent(req, res) {
+    const { id } = req.params;
+    const ticket = await this.service.getTicketByAgentId(id);
+    if (!ticket || ticket.length === 0) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        TICKET_MESSAGE.TICKET_NOT_FOUND,
+      );
+    }
+    return sendResponse(
+      res,
+      STATUS_CODE.SUCCESS,
+      TICKET_MESSAGE.TICKET_FETCHED,
+      {
+        ticket,
+      },
+    );
+
   }
 }
 

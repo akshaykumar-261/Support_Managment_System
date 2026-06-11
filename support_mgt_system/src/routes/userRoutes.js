@@ -9,6 +9,7 @@ import UserDevices from "../../dataBase/models/userDevice.js";
 import authorize from "../middleweare/authmiddleweare.js";
 import checkRole from "../middleweare/roleBaseMiddleweare.js";
 import {
+  createAgentSchema,
   createUserSchema,
   userUpdateSchema,
   validateRequest,
@@ -36,7 +37,6 @@ router.put(
 );
 router.delete(
   "/delete/:id",
-  role,
   authorize,
   asyncHandler(controller.deleteUser.bind(controller)),
 );
@@ -55,4 +55,13 @@ router.get(
 router.post("/login", asyncHandler(controller.login.bind(controller)));
 router.post("/refreshToken", asyncHandler(controller.refreshToken.bind(controller)));
 router.post("/logout", authorize, asyncHandler(controller.logout.bind(controller)));
-export default router;
+router.post("/forgot-password", asyncHandler(controller.forgotPassword.bind(controller)));
+router.post("/verify-otp", asyncHandler(controller.verifyOtp.bind(controller)));
+router.post(
+  "/createAgent",
+  authorize,
+  role,
+  uplaod.single("profile_Img"),
+  validateRequest(createAgentSchema),
+  asyncHandler(controller.agentCreate.bind(controller)),
+);export default router;

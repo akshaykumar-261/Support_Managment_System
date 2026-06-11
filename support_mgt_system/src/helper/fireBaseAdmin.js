@@ -1,8 +1,7 @@
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-
-// Direct specific methods ko target karke require kiya
+//Target direct specifiy method
 const { initializeApp } = require('firebase-admin/app');
 const { cert } = require('firebase-admin/app');
 

@@ -77,4 +77,5 @@ route.put(
   validateRequest(updateStatusSchema),
   asyncHandler(controller.updateStatus.bind(controller)),
 );
+route.get("/getTicketByAgent/:id", asyncHandler(controller.getTicketByAgent.bind(controller)));
 export default route;

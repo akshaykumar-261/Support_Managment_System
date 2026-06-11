@@ -1,0 +1,1113 @@
+{
+	"info": {
+		"_postman_id": "57d70e58-e2e9-4086-9ea4-ff348532f37c",
+		"name": "Support Mgt API Collection",
+		"description": "API collection for the Support Management backend. Use the `baseURL` and `token` variables for requests.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "53889688"
+	},
+	"variable": [
+		{
+			"key": "baseURL",
+			"value": "http://localhost:8088",
+			"type": "string",
+			"description": "Base URL for local API server"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string",
+			"description": "Set this to 'Bearer <jwt>' after login or use environment variables"
+		}
+	],
+	"item": [
+		{
+			"name": "Chat",
+			"description": "Endpoints for ticket messages and agent lists",
+			"item": [
+				{
+					"name": "sendMessage (user)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"resolve again\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/ticketMessage/sendMessage/3",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": ["api", "ticketMessage", "sendMessage", "3"]
+						},
+						"description": "Send a chat message for a ticket (replace ticket id in URL)"
+					}
+				},
+				{
+					"name": "getAgentList",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL}}/api/ticket/getAgentsList",
+							"host": ["{{baseURL}}"],
+							"path": ["api", "ticket", "getAgentsList"]
+						},
+						"description": "Return list of agents available for assignment"
+					}
+				}
+			]
+		},
+		{
+			"name": "User Module",
+			"description": "User CRUD, authentication and profile endpoints",
+			"item": [
+				{
+					"name": "createUser",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "name", "value": "Arun", "type": "text" },
+								{ "key": "email", "value": "arun123@gmail.com", "type": "text" },
+								{ "key": "address", "value": "mohali", "type": "text" },
+								{ "key": "phoneNo", "value": "8765865463", "type": "text" },
+								{ "key": "role_Id", "value": "3", "type": "text" },
+								{ "key": "password", "value": "customer123@", "type": "text" },
+								{ "key": "profile_Img", "type": "file", "src": "/path/to/profile.png" }
+							]
+						},
+						"url": { "raw": "{{baseURL}}/api/users/create", "host": ["{{baseURL}}"], "path": ["api", "users", "create"] },
+						"description": "Create a new user (multipart/form-data). Replace file path as needed."
+					}
+				},
+				{
+					"name": "updateUser (id)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "{{token}}", "type": "text" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "name", "value": "amit kumar hhuyu", "type": "text" },
+								{ "key": "address", "value": "Delhi", "type": "text" },
+								{ "key": "phone", "value": "9876543210", "type": "text" },
+								{ "key": "role_Id", "value": "3", "type": "text" },
+								{ "key": "profile_Img", "type": "file", "src": "/path/to/profile.png" }
+							]
+						},
+						"url": { "raw": "{{baseURL}}/api/users/update/4", "host": ["{{baseURL}}"], "path": ["api", "users", "update", "4"] },
+						"description": "Update user by id (replace id in URL)."
+					}
+				},
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const jsonData = pm.response.json();",
+									"const accessToken = jsonData.data.accessToken;",
+									"pm.environment.set(\"token\", `Bearer ${accessToken}`)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"testcustomer1@yopmail.com\",\n  \"password\": \"Test@123\",\n  \"device_token\": \"1\",\n  \"device_type\": \"android\",\n  \"device_id\": \"4\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{baseURL}}/api/users/login", "host": ["{{baseURL}}"], "path": ["api", "users", "login"] },
+						"description": "Authenticate a user. The test script will save `token` to environment."
+					}
+				},
+				{
+					"name": "refreshToken",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"<refresh-token>\"\n}" },
+						"url": { "raw": "{{baseURL}}/api/users/refreshToken", "host": ["{{baseURL}}"], "path": ["api", "users", "refreshToken"] },
+						"description": "Refresh access token using a refresh token"
+					}
+				},
+				{
+					"name": "deleteUser (id)",
+					"request": {
+						"method": "DELETE",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" } ],
+						"url": { "raw": "{{baseURL}}/api/users/delete/4", "host": ["{{baseURL}}"], "path": ["api", "users", "delete", "4"] },
+						"description": "Delete user by id (replace id in URL)."
+					}
+				},
+				{
+					"name": "getProfile",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" } ],
+						"url": { "raw": "{{baseURL}}/api/users/profile", "host": ["{{baseURL}}"], "path": ["api", "users", "profile"] },
+						"description": "Get current user's profile (requires Authorization)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Customer Module",
+			"description": "Endpoints a customer would use to create and manage tickets",
+			"item": [
+				{
+					"name": "createTicket",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" } ],
+						"body": { "mode": "raw", "raw": "{\n  \"title\": \"Ticket 82\",\n  \"description\": \"description here\",\n  \"priority\": \"high\"\n}" },
+						"url": { "raw": "{{baseURL}}/api/ticket/createTicket", "host": ["{{baseURL}}"], "path": ["api", "ticket", "createTicket"] },
+						"description": "Create a new ticket as a customer"
+					}
+				},
+				{
+					"name": "getTicketByCustomer (id)",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" } ],
+						"url": { "raw": "{{baseURL}}/api/ticket/getTicketByCustomer/2", "host": ["{{baseURL}}"], "path": ["api", "ticket", "getTicketByCustomer", "2"] },
+						"description": "Get tickets for a customer by id (replace id in URL)"
+					}
+				},
+				{
+					"name": "closeTicketByUser",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" } ],
+						"body": { "mode": "raw", "raw": "{\n  \"id\": \"2\"\n}" },
+						"url": { "raw": "{{baseURL}}/api/ticket/closeTicket", "host": ["{{baseURL}}"], "path": ["api", "ticket", "closeTicket"] },
+						"description": "Close a ticket as the customer"
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin Module",
+			"description": "Admin endpoints: dashboard, ticket management and assignment",
+			"item": [
+				{
+					"name": "adminDashboard",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" } ],
+						"body": { "mode": "raw", "raw": "{\n  \"agent_Id\": \"12\"\n}" },
+						"url": { "raw": "{{baseURL}}/api/ticket/adminDashBoard", "host": ["{{baseURL}}"], "path": ["api", "ticket", "adminDashBoard"] },
+						"description": "Admin dashboard statistics (may accept agent_Id)"
+					}
+				},
+				{
+					"name": "getTicketListByAdmin",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" } ],
+						"url": { "raw": "{{baseURL}}/api/ticket/getTicketListByAdmin", "host": ["{{baseURL}}"], "path": ["api", "ticket", "getTicketListByAdmin"] },
+						"description": "List tickets visible to admin"
+					}
+				},
+				{
+					"name": "updateTicketStatus (id)",
+					"request": {
+						"method": "PUT",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" } ],
+						"body": { "mode": "raw", "raw": "{\n  \"status\": \"open\"\n}" },
+						"url": { "raw": "{{baseURL}}/api/ticket/updateTicketStatus/2", "host": ["{{baseURL}}"], "path": ["api", "ticket", "updateTicketStatus", "2"] },
+						"description": "Update ticket status (replace id)"
+					}
+				},
+				{
+					"name": "updateTicketPriority (id)",
+					"request": {
+						"method": "PUT",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" } ],
+						"body": { "mode": "raw", "raw": "{\n  \"priority\": \"medium\"\n}" },
+						"url": { "raw": "{{baseURL}}/api/ticket/updateTicketPriority/3", "host": ["{{baseURL}}"], "path": ["api", "ticket", "updateTicketPriority", "3"] },
+						"description": "Change ticket priority (replace id)"
+					}
+				},
+				{
+					"name": "assignTicket (ticketId)",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" } ],
+						"body": { "mode": "raw", "raw": "{\n  \"agent_Id\": \"11\"\n}" },
+						"url": { "raw": "{{baseURL}}/api/ticket/assignTicket/3", "host": ["{{baseURL}}"], "path": ["api", "ticket", "assignTicket", "3"] },
+						"description": "Assign a ticket to an agent (replace ticket id)"
+					}
+				},
+				{
+					"name": "reAssignTicket",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" } ],
+						"body": { "mode": "raw", "raw": "{\n  \"ticket_Id\": \"7\",\n  \"assign_From\": \"11\",\n  \"assign_To\": \"12\",\n  \"assign_By\": \"1\",\n  \"action\": \"reassigned\",\n  \"old_Status\": \"closed\",\n  \"new_Status\": \"open\",\n  \"old_Priority\": \"low\",\n  \"new_Priority\": \"high\",\n  \"from_Department\": \"2\",\n  \"to_Department\": \"3\"\n}" },
+						"url": { "raw": "{{baseURL}}/api/ticketHistory/reAssignTicket", "host": ["{{baseURL}}"], "path": ["api", "ticketHistory", "reAssignTicket"] },
+						"description": "Record a reassignment event in ticket history"
+					}
+				},
+				{
+					"name": "getUser (query)",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Authorization", "value": "{{token}}", "type": "text" } ],
+						"url": { "raw": "{{baseURL}}/api/users/getUser?role=customer", "host": ["{{baseURL}}"], "path": ["api", "users", "getUser"], "query": [ { "key": "role", "value": "customer" } ] },
+						"description": "Get users filtered by role (example: role=customer)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Agent Module",
+			"description": "Reserved for agent-specific endpoints (empty placeholder)",
+			"item": []
+		}
+	]
+}
+						{
+							"name": "createUser",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZV9JZCI6MSwiZW1haWwiOiJhZG1pbjEyM0B5b3BtYWlsLmNvbSIsImlhdCI6MTc3ODc2MzUyOCwiZXhwIjoxNzc4NzY0NDI4fQ.W_0MNQWsUbGTpiF9yWDj2bjtdqYfsBZjkELVLv8YpKw",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "name",
+											"value": "Arun",
+											"type": "text"
+										},
+										{
+											"key": "email",
+											"value": "arun123@gmail.com",
+											"type": "text"
+										},
+										{
+											"key": "address",
+											"value": "mohali",
+											"type": "text"
+										},
+										{
+											"key": "phoneNo",
+											"value": "8765865463",
+											"type": "text"
+										},
+										{
+											"key": "role_Id",
+											"value": "3",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "customer123@",
+											"type": "text"
+										},
+										{
+											"key": "profile_Img",
+											"type": "file",
+											"src": "/home/softradix/Pictures/Screenshots/Screenshot from 2026-05-25 12-14-34.png"
+										},
+										{
+											"key": "",
+											"value": "",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/users/create",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"users",
+										"create"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "updateUser",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZV9pZCI6MSwiZW1haWwiOiJzdXBlcmFkbWluMTJAeW9wZW1haWwuY29tIiwiaWF0IjoxNzc4MTM1NzYxLCJleHAiOjE3NzgxMzY2NjF9.RbtQ4nR0A0Xdt-Y7O5kwGVDiHDCQ4bYNDMBEGb4Coug",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "name",
+											"value": "amit kumar hhuyu",
+											"type": "text"
+										},
+										{
+											"key": "email",
+											"value": "amit123@yopmail.com",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "address",
+											"value": "Delhi",
+											"type": "text"
+										},
+										{
+											"key": "phone",
+											"value": "9876543210",
+											"type": "text"
+										},
+										{
+											"key": "role_Id",
+											"value": "3",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "customer123@",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "profile_Img",
+											"type": "file",
+											"src": "/home/softradix/Pictures/Screenshots/Screenshot from 2026-04-08 15-17-39.png"
+										},
+										{
+											"key": "",
+											"value": "",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/users/update/4",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"users",
+										"update",
+										"4"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "login",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const jsonData = pm.response.json();",
+											"const accessToken = jsonData.data.accessToken;",
+											"pm.environment.set(\"token\", accessToken)"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"email\": \"testcustomer1@yopmail.com\",\n  \"password\": \"Test@123\",\n  \"device_token\": \"1\",\n  \"device_type\": \"android\",\n  \"device_id\": \"4\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/users/login",
+									"host": [
+										"{{baseURL}}"
+									],
+									"path": [
+										"api",
+										"users",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "refreshToken",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIsImlhdCI6MTc3OTEwMTA0MywiZXhwIjoxNzc5NzA1ODQzfQ.JWp-PEQCGI3CeXDwMJld9zPKMTKpw4ffeV7IjWF8chw\"\n}// agent",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/users/refreshToken",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"users",
+										"refreshToken"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "deleteUser",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZV9pZCI6MSwiZW1haWwiOiJzdXBlcmFkbWluMTJAeW9wZW1haWwuY29tIiwiaWF0IjoxNzc4MTM1NzYxLCJleHAiOjE3NzgxMzY2NjF9.RbtQ4nR0A0Xdt-Y7O5kwGVDiHDCQ4bYNDMBEGb4Coug",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "name",
+											"value": "amit kumar hhuyu",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "email",
+											"value": "amit123@yopmail.com",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "address",
+											"value": "Delhi",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "phone",
+											"value": "9876543210",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "role_Id",
+											"value": "3",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "password",
+											"value": "customer123@",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "profile_Img",
+											"type": "file",
+											"src": "/home/softradix/Pictures/Screenshots/Screenshot from 2026-04-08 15-17-39.png",
+											"disabled": true
+										},
+										{
+											"key": "",
+											"value": "",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/users/delete/4",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"users",
+										"delete",
+										"4"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "getProfile",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTAsInJvbGVfSWQiOjMsImVtYWlsIjoiYW51amthcGFkaXlhMTIzQHlvcG1haWwuY29tIiwiaWF0IjoxNzgxMDc5MTczLCJleHAiOjE3ODg4NTUxNzN9.6abUogACWT_mjPDqb5fZOuhwe8_A0crER5T8fXpHdNg",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": ""
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/users/profile",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"users",
+										"profile"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "CustomerCollection",
+					"item": [
+						{
+							"name": "createTicket",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTAsInJvbGVfSWQiOjMsImVtYWlsIjoiYW51amthcGFkaXlhMTIzQHlvcG1haWwuY29tIiwiaWF0IjoxNzgxMDc1NDYxLCJleHAiOjE3ODg4NTE0NjF9.4vx3Fnx5_jM5FpaG2Oba777iuc04AiKWkOp-sUQUNHE",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\":\"Ticket 82\",\n    \"description\": \"ncvbuituyoiutyiuydjfhjmncv\",\n    \"priority\":\"high\"\n\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/ticket/createTicket",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"ticket",
+										"createTicket"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "getTicketByCustomer",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTAsInJvbGVfSWQiOjMsImVtYWlsIjoiYW51amthcGFkaXlhMTIzQHlvcG1haWwuY29tIiwiaWF0IjoxNzc4NzUzOTQ5LCJleHAiOjE3Nzg3NTQ4NDl9.EFk-8wCEVpe15uX69ZjDNV1F45yAMv_qbZiCOB3Xsxk",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\":\"hjkhkjhkjhhjhhjjjhj\",\n    \"description\": \"oiwunjuiydncjhiuywjkhj\",\n    \"priority\":\"low\"\n\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/ticket/getTicketByCustomer/2",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"ticket",
+										"getTicketByCustomer",
+										"2"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "closeTicketByUser",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTAsInJvbGVfSWQiOjMsImVtYWlsIjoiYW51amthcGFkaXlhMTIzQHlvcG1haWwuY29tIiwiaWF0IjoxNzc4NzUzOTQ5LCJleHAiOjE3Nzg3NTQ4NDl9.EFk-8wCEVpe15uX69ZjDNV1F45yAMv_qbZiCOB3Xsxk",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "\n{\n    \"id\":\"2\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/ticket/closeTicket",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"ticket",
+										"closeTicket"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "AdminCollection",
+					"item": [
+						{
+							"name": "adminDashboard",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZV9JZCI6MSwiZW1haWwiOiJhZG1pbjEyM0B5b3BtYWlsLmNvbSIsImlhdCI6MTc3ODc1ODY2MiwiZXhwIjoxNzc4NzU5MjYyfQ.lf3xAP5OOCH7KiO6kJyDKdgf5mGXFXphRjr-5mA2rUc",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "\n{\n    \"agent_Id\":\"12\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/ticket/adminDashBoard",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"ticket",
+										"adminDashBoard"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "getTicketByAdmin",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZV9JZCI6MSwiZW1haWwiOiJhZG1pbjEyM0B5b3BtYWlsLmNvbSIsImlhdCI6MTc3ODc1NjMwNCwiZXhwIjoxNzc4NzU2OTA0fQ.kQnJI7dLce6cccV-ULHFZ5rCTBMnKnBAEi-PNN3jwBk",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\":\"hjkhkjhkjhhjhhjjjhj\",\n    \"description\": \"oiwunjuiydncjhiuywjkhj\",\n    \"priority\":\"low\"\n\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/ticket/getTicketListByAdmin",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"ticket",
+										"getTicketListByAdmin"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "updateTickeStatus",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZV9JZCI6MSwiZW1haWwiOiJhZG1pbjEyM0B5b3BtYWlsLmNvbSIsImlhdCI6MTc3ODc2MDgzNSwiZXhwIjoxNzc4NzYxNDM1fQ.VWDaHKjdibInjeJZ4c9odBF8OlsVoBtZqZQG92iK6-0",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"status\":\"open\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/ticket/updateTicketStatus/2",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"ticket",
+										"updateTicketStatus",
+										"2"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "updateTicketPriority",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZV9JZCI6MSwiZW1haWwiOiJhZG1pbjEyM0B5b3BtYWlsLmNvbSIsImlhdCI6MTc3ODc2MTAyNSwiZXhwIjoxNzc4NzYxNjI1fQ.pw9ke1NhpB4UITPjRfZKjhNt2XghuIq8qkKa1c27Eu4",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"priority\":\"medium\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/ticket/updateTicketPriority/3",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"ticket",
+										"updateTicketPriority",
+										"3"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "assignTicket",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTMsInJvbGVfSWQiOjMsImVtYWlsIjoiYWtzaGF5MTIzQHlvcG1haWwuY29tIiwiaWF0IjoxNzc5Nzk2MzQ1LCJleHAiOjE3ODc1NzIzNDV9.ldS9NCOJnZD2SnmUOiw2yi6Von9ea0J3pM2vSW1vjEo",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "\n{\n    \"agent_Id\":\"11\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/ticket/assignTicket/3",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"ticket",
+										"assignTicket",
+										"3"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "reAssignTicket",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZV9JZCI6MSwiZW1haWwiOiJhZG1pbjEyM0B5b3BtYWlsLmNvbSIsImlhdCI6MTc3OTg2NDU3MCwiZXhwIjoxNzg3NjQwNTcwfQ.pR-NHXWqtiZg57B8z9pceYaqOK-Pc_FHWr2Hx0UI6_A",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ticket_Id\":\"7\", //ticket tid\n    \"assign_From\":\"11\",  // kis sa assign hui\n    \"assign_To\":\"12\", // kis ko assign hui\n    \"assign_By\": \"1\", // kis na assign ki\n    \"action\":\"reassigned\",\n    \"old_Status\":\"closed\",\n    \"new_Status\":\"open\",\n    \"old_Priority\":\"low\",\n    \"new_Priority\":\"high\",\n    \"from_Department\":\"2\",\n    \"to_Department\":\"3\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/ticketHistory/reAssignTicket",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"ticketHistory",
+										"reAssignTicket"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "getUser",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZV9JZCI6MSwiZW1haWwiOiJhZG1pbjEyM0B5b3BtYWlsLmNvbSIsImlhdCI6MTc3OTk1NDc1MywiZXhwIjoxNzg3NzMwNzUzfQ.lK3tLGTZ21GfWVUQS6M7esxHPrGda3mve98FstxlYlg",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "name",
+											"value": "amit kumar hhuyu",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "email",
+											"value": "amit123@yopmail.com",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "address",
+											"value": "Delhi",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "phone",
+											"value": "9876543210",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "role_Id",
+											"value": "3",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "password",
+											"value": "customer123@",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "profile_Img",
+											"type": "file",
+											"src": "/home/softradix/Pictures/Screenshots/Screenshot from 2026-04-08 15-17-39.png",
+											"disabled": true
+										},
+										{
+											"key": "",
+											"value": "",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "http://localhost:8088/api/users/getUser?role=customer",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8088",
+									"path": [
+										"api",
+										"users",
+										"getUser"
+									],
+									"query": [
+										{
+											"key": "role",
+											"value": "customer"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "AgentCollection",
+					"item": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		}
+	]
+}

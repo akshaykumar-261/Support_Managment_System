@@ -6,6 +6,8 @@ import { authMessage, userMessage } from "../helper/commanMessage.js";
 import { sendResponse } from "../helper/responseHandler.js";
 import { STATUS_CODE } from "../helper/statusCode.js";
 import * as commanFunction from "../../utility/commanFunction.js";
+import { ROLE } from "../helper/roleBase.js";
+import {sendForgotPasswordOtp} from "../../utility/sendForgotPasswordOtp.js"
 export default class userController {
   async init(db) {
     this.service = new userService();
@@ -29,6 +31,29 @@ export default class userController {
     const user = await this.service.createUser({
       ...req.body,
       profile_Img: profileImage,
+      role_Id: ROLE.CUSTOMER
+    });
+    return sendResponse(res, STATUS_CODE.CREATED, userMessage.USER_CREATED, {
+      user,
+    });
+  }
+  async agentCreate(req, res) {
+    const { email } = req.body;
+    const exitingUser = await this.service.getByEmail(email);
+    if (exitingUser) {
+      if (req.file) {
+        commanFunction.deleteFile(req.file.path);
+      }
+      return sendResponse(res, STATUS_CODE.BAD_REQUEST, userMessage.USER_EXIST);
+    }
+    let profileImage = null;
+    if (req.file) {
+      profileImage = req.file.path;
+    }
+    const user = await this.service.createUser({
+      ...req.body,
+      profile_Img: profileImage,
+      role_Id: ROLE.AGENT
     });
     return sendResponse(res, STATUS_CODE.CREATED, userMessage.USER_CREATED, {
       user,
@@ -205,7 +230,7 @@ export default class userController {
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
-      "Profile fetched successfully",
+      userMessage.FETCH_PROFILE,
       user
     );
   } catch (error) {
@@ -215,5 +240,92 @@ export default class userController {
       error.message
     );
   }
-}
+  }
+  async forgotPassword(req, res) {
+    const { email } = req.body;
+    const user = await this.service.getByEmail(email);
+    if(!user){
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.USER_NOT_FOUND
+      );
+    }
+    const otp = commanFunction.generateSecureOtp(6);
+    await this.service.saveOtp(user.id,otp);
+    await sendForgotPasswordOtp(
+      user.email,
+      otp,
+      user.name 
+    )
+    return sendResponse(
+      res,
+      STATUS_CODE.SUCCESS,
+      userMessage.OTP_SENT
+    )
+  }
+  async verifyOtp(req, res) {
+    try {
+      const { email, otp } = req.body;
+      const userInstance = await this.service.getByEmail(email);
+      
+      if (!userInstance) {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+          userMessage.USER_NOT_FOUND
+        );
+      }
+
+      const user = userInstance.get ? userInstance.get({ plain: true }) : userInstance;
+      console.log("DB se aaya User OTP:", user.otp, "Type:", typeof user.otp);
+      console.log("DB se aayi Expiry:", user.otp_expire);
+
+      // 1. OTP Check
+      if (!user.otp || user.otp.toString() !== otp.toString()) {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+          userMessage.INVALID_OTP
+        );
+      }
+
+      // 2. Expiry Check
+      if (!user.otp_expire) {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+          userMessage.OTP_EXPIRED
+        );
+      }
+
+      const currentTime = new Date().getTime();
+      const expiryTime = new Date(user.otp_expire).getTime();
+
+      if (currentTime > expiryTime) {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+          userMessage.OTP_EXPIRED
+        );
+      }
+
+      // OTP reset/clear
+      await this.service.updateUser(user.id, { otp: null, otp_expire: null });
+      
+      return sendResponse(
+        res,
+        STATUS_CODE.SUCCESS,
+        userMessage.OTP_VERIFIED
+      );
+
+    } catch (error) {
+      console.error("Verify OTP Error:", error);
+      return sendResponse(
+        res,
+        STATUS_CODE.SERVER_ERROR,
+        "Something went wrong!"
+      );
+    }
+  }
 }

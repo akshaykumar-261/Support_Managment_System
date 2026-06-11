@@ -11,7 +11,6 @@ export default class UserService {
         email: email.toLowerCase().trim(),
         deletedAt: null,
       },
-      raw: true,
     });
   };
 
@@ -21,7 +20,6 @@ export default class UserService {
         id: id,
         deletedAt: null,
       },
-      raw: true,
     });
   };
   updateUser = async (id, payload) => {
@@ -112,5 +110,21 @@ export default class UserService {
         ],
       },
     });
+  }
+ async saveOtp(userId, otp) {
+    const expireTime = new Date(Date.now() + 5 * 60 * 1000); // 5 Minutes From Now
+
+    console.log("Saving OTP:", otp);
+    console.log("Saving Expire Time:", expireTime);
+
+    return await this.Model.Users.update(
+      {
+        otp: otp,
+        otp_expire: expireTime,
+      },
+      {
+        where: { id: userId },
+      }
+    );
   }
 }

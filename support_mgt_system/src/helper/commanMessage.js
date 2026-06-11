@@ -14,6 +14,7 @@ export const userMessage = {
   INVALID_CREDENTIALS: "Invalid email or password",
   OTP_SENT: "OTP sent to your email",
   OTP_INVALID: "Invalid OTP",
+  OTP_EXPIRED: "OTP has expired",
   PASSWORD_RESET_SUCCESS: "Password reset successfully",
   PASSWORD_RESET_FAILED: "Failed to reset password",
   USER_UPDATED: "User updated successfully",
@@ -24,7 +25,8 @@ export const userMessage = {
   LOGOUT_SUCCESS: "Logout successful",
   REQUIRED_TOKEN: "Refresh token required",
   INVALID_TOKEN: "token is not valid",
-  NEW_TOKEN:"New access token generated",
+  NEW_TOKEN: "New access token generated",
+  FETCH_PROFILE: "User profile fetched successfully",
 };
 export const authMessage = {
   USER_NOT_FOUND: "this user not found or inactive",
