@@ -50,7 +50,14 @@ export default class TicketService {
     return this.Model.TicketModel.findAll({
       where: {
         current_Agent: agentId
-      }
+      },
+      include: [
+        {
+          model: this.Model.UserModel,
+          as: "customer",
+          attributes: ["id", "name", "email"],
+        },
+      ]
     })
   }
   async createTicket(payload) {
@@ -176,7 +183,6 @@ async getUserDeviceTokens(userIds) {
   return devices.map(d => d.device_token);
 }
 
-// Super Admin ki IDs nikalne ke liye method
 async getSuperAdminIds() {
   const admins = await this.Model.UserModel.findAll({
     include: [
@@ -191,4 +197,42 @@ async getSuperAdminIds() {
   });
   return admins.map(a => a.id);
 }
+  
+  async agentDashboard(agentId) {
+  const totalTicket = await this.Model.TicketModel.count({
+    where: {
+      current_Agent: agentId,
+    },
+  });
+
+  const openTickets = await this.Model.TicketModel.count({
+    where: {
+      current_Agent: agentId,
+      status: "open",
+    },
+  });
+
+  const closeTickets = await this.Model.TicketModel.count({
+    where: {
+      current_Agent: agentId,
+      status: "closed",
+    },
+  });
+
+  const inProgressTickets = await this.Model.TicketModel.count({
+    where: {
+      current_Agent: agentId,
+      status: "in_progress",
+    },
+  });
+
+  return {
+    totalTicket,
+    openTickets,
+    closeTickets,
+    inProgressTickets,
+  };
+  }
+  
 }
+

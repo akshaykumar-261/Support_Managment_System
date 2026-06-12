@@ -7,14 +7,14 @@ import { sendResponse } from "../helper/responseHandler.js";
 import { STATUS_CODE } from "../helper/statusCode.js";
 import * as commanFunction from "../../utility/commanFunction.js";
 import { ROLE } from "../helper/roleBase.js";
-import {sendForgotPasswordOtp} from "../../utility/sendForgotPasswordOtp.js"
+import { sendForgotPasswordOtp } from "../../utility/sendForgotPasswordOtp.js"
+import { sendRegistrationOtp } from "../../utility/sendRegistrationOtp.js";
 export default class userController {
   async init(db) {
     this.service = new userService();
     this.Models = db.models;
     await this.service.init(db);
   }
-
   async userCreate(req, res) {
     const { email } = req.body;
     const exitingUser = await this.service.getByEmail(email);
@@ -28,11 +28,21 @@ export default class userController {
     if (req.file) {
       profileImage = req.file.path;
     }
+    const otp = commanFunction.generateSecureOtp(6);
     const user = await this.service.createUser({
       ...req.body,
       profile_Img: profileImage,
-      role_Id: ROLE.CUSTOMER
+      role_Id: ROLE.CUSTOMER,
+      otp,
+      otp_type: "EMAIL_VERIFICATION",
+      is_verified: false,
+    otp_expire: new Date(Date.now() + 10 * 60 * 1000),
     });
+    await sendRegistrationOtp(
+    user.email,
+    otp,
+    user.name
+  );
     return sendResponse(res, STATUS_CODE.CREATED, userMessage.USER_CREATED, {
       user,
     });
@@ -144,6 +154,13 @@ export default class userController {
         userMessage.USER_NOT_FOUND,
       );
     }
+    if (!userInDb.is_verified) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.VERIFY_EMAIL
+      )
+    }
     const isMatch = await bcrypt.compare(password, userInDb.password);
     if (!isMatch) {
       return sendResponse(
@@ -252,7 +269,8 @@ export default class userController {
       );
     }
     const otp = commanFunction.generateSecureOtp(6);
-    await this.service.saveOtp(user.id,otp);
+    const otpType = "FORGOT_PASSWORD";
+    await this.service.saveOtp(user.id,otp,otpType);
     await sendForgotPasswordOtp(
       user.email,
       otp,
@@ -265,67 +283,113 @@ export default class userController {
     )
   }
   async verifyOtp(req, res) {
-    try {
-      const { email, otp } = req.body;
-      const userInstance = await this.service.getByEmail(email);
-      
-      if (!userInstance) {
-        return sendResponse(
-          res,
-          STATUS_CODE.BAD_REQUEST,
-          userMessage.USER_NOT_FOUND
-        );
-      }
+  const { email, otp, type } = req.body;
+  const user = await this.service.getByEmail(email);
+    if (!user) {
+    return sendResponse(
+      res,
+      STATUS_CODE.BAD_REQUEST,
+      userMessage.USER_NOT_FOUND
+    );
+  }
+    if (!user.otp)
+    {
+      return sendResponse(res,STATUS_CODE.BAD_REQUEST,userMessage.OTP_NOT_FOUND)
+    } 
+   
+     if (new Date() > new Date(user.otp_expire)) {
+    return sendResponse(
+      res,
+      STATUS_CODE.BAD_REQUEST,
+      userMessage.OTP_EXPIRED
+    );
+  }
+    if (!user.otp || user.otp.toString() !== otp.toString()) {
+    return sendResponse(
+      res,
+      STATUS_CODE.BAD_REQUEST,
+      userMessage.INVALID_OTP
+    );
+    }
+     if (user.otp_type !== type) {
+    return sendResponse(
+      res,
+      STATUS_CODE.BAD_REQUEST,
+      userMessage.INVALID_TYPE
+    );
+    }
 
-      const user = userInstance.get ? userInstance.get({ plain: true }) : userInstance;
-      console.log("DB se aaya User OTP:", user.otp, "Type:", typeof user.otp);
-      console.log("DB se aayi Expiry:", user.otp_expire);
+  const payload = {
+    otp: null,
+    otp_expire: null,
+    otp_type: null,
+  };
 
-      // 1. OTP Check
-      if (!user.otp || user.otp.toString() !== otp.toString()) {
-        return sendResponse(
-          res,
-          STATUS_CODE.BAD_REQUEST,
-          userMessage.INVALID_OTP
-        );
-      }
+  if (type === "EMAIL_VERIFICATION") {
+    payload.is_verified = true;
+  }
 
-      // 2. Expiry Check
-      if (!user.otp_expire) {
-        return sendResponse(
-          res,
-          STATUS_CODE.BAD_REQUEST,
-          userMessage.OTP_EXPIRED
-        );
-      }
+  await this.service.updateUser(user.id, payload);
 
-      const currentTime = new Date().getTime();
-      const expiryTime = new Date(user.otp_expire).getTime();
-
-      if (currentTime > expiryTime) {
-        return sendResponse(
-          res,
-          STATUS_CODE.BAD_REQUEST,
-          userMessage.OTP_EXPIRED
-        );
-      }
-
-      // OTP reset/clear
-      await this.service.updateUser(user.id, { otp: null, otp_expire: null });
-      
+  return sendResponse(
+    res,
+    STATUS_CODE.SUCCESS,
+    userMessage.OTP_VERIFIED
+  );
+}
+  async resendOtp(req, res) {
+    const { email,type } = req.body;
+    const user = await this.service.getByEmail(email);
+    if(!user){
       return sendResponse(
         res,
-        STATUS_CODE.SUCCESS,
-        userMessage.OTP_VERIFIED
-      );
-
-    } catch (error) {
-      console.error("Verify OTP Error:", error);
-      return sendResponse(
-        res,
-        STATUS_CODE.SERVER_ERROR,
-        "Something went wrong!"
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.USER_NOT_FOUND
       );
     }
+    const otp = commanFunction.generateSecureOtp(6);
+    await this.service.saveOtp(user.id, otp, type);
+    if (type === "EMAIL_VERIFICATION") {
+      await sendRegistrationOtp(
+        user.email,
+        otp,
+        user.name
+      )
+    } else {
+      await sendForgotPasswordOtp(
+        user.email,
+        otp,
+        user.name
+      )
+    }
+    await sendForgotPasswordOtp(
+      user.email,
+      otp,
+      user.name 
+    )
+    return sendResponse(
+      res,
+      STATUS_CODE.SUCCESS,
+      userMessage.OTP_SENT
+    );
+  }
+  async resetPassword(req, res) {
+    const { email, newPassword } = req.body;
+    const user = await this.service.getByEmail(email);
+    console.log("User fetched for password reset =========>:", user);
+    if (!user) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.USER_NOT_FOUND
+      )
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.service.updateUser(user.id, { password: hashedPassword });
+    return sendResponse(
+      res,
+      STATUS_CODE.SUCCESS,
+      userMessage.PASSWORD_RESET_SUCCESS
+    );
   }
 }

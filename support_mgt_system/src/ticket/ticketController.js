@@ -205,6 +205,26 @@ async ticketCreate(req, res) {
     );
 
   }
+async agentDashboard(req, res) {
+  const { agentId } = req.params;
+
+  if (!agentId) {
+    return sendResponse(
+      res,
+      STATUS_CODE.BAD_REQUEST,
+      "Agent Id is required"
+    );
+  }
+
+  const dashboard = await this.service.agentDashboard(agentId);
+
+  return sendResponse(
+    res,
+    STATUS_CODE.SUCCESS,
+    "Agent Dashboard Fetched Successfully",
+    { dashboard }
+  );
+}
 }
 
 

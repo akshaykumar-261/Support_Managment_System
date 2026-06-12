@@ -29,9 +29,13 @@ export default class UserService {
     return this.Model.Users.update({ refreshToken: null }, { where: { id } });
   }
   async createUser(payload) {
-    const user = await this.Model.Users.create(payload);
-    return user;
-  }
+  const user = await this.Model.Users.create(payload);
+  return await this.Model.Users.findByPk(user.id, {
+    attributes: {
+      exclude: ['password', 'createdAt', 'updatedAt','department_Id','refreshToken']
+    }
+  });
+}
   async deleteUserById(id) {
     const payload = { deletedAt: new Date(), is_active: 0 };
     return this.Model.Users.update(payload, { where: { id: id } });
@@ -111,16 +115,15 @@ export default class UserService {
       },
     });
   }
- async saveOtp(userId, otp) {
+ async saveOtp(userId, otp,otptype) {
     const expireTime = new Date(Date.now() + 5 * 60 * 1000); // 5 Minutes From Now
-
     console.log("Saving OTP:", otp);
     console.log("Saving Expire Time:", expireTime);
-
     return await this.Model.Users.update(
       {
         otp: otp,
         otp_expire: expireTime,
+        otp_type: otptype
       },
       {
         where: { id: userId },

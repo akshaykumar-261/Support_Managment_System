@@ -14,6 +14,7 @@ import {
   updateStatusSchema,
   validateRequest,
 } from "../ticket/ticketValidation.js";
+import router from "./userRoutes.js";
 const route = express.Router();
 const controller = new ticketController();
 const role = checkRole("Customer");
@@ -62,6 +63,9 @@ route.get(
   authorize,
   checkRole("Super Admin","Agent"),
   asyncHandler(controller.getAgentsList.bind(controller)),
+);
+route.get("/agentDashBoard/:agentId",
+  asyncHandler(controller.agentDashboard.bind(controller)),
 );
 route.put(
   "/updateTicketPriority/:id",

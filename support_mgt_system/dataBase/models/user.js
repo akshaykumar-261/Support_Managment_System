@@ -45,6 +45,15 @@ const UserModel = sequelize.define(
     otp_expire: {
       type: DataTypes.DATE,
     },
+    is_verified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    otp_type: {
+      type: DataTypes.ENUM("EMAIL_VERIFICATION", "FORGOT_PASSWORD"),
+      allowNull: true,
+    },
     refreshToken: {
       type: DataTypes.TEXT,
     },

@@ -38,6 +38,7 @@ router.put(
 router.delete(
   "/delete/:id",
   authorize,
+  role,
   asyncHandler(controller.deleteUser.bind(controller)),
 );
 router.get(
@@ -57,6 +58,8 @@ router.post("/refreshToken", asyncHandler(controller.refreshToken.bind(controlle
 router.post("/logout", authorize, asyncHandler(controller.logout.bind(controller)));
 router.post("/forgot-password", asyncHandler(controller.forgotPassword.bind(controller)));
 router.post("/verify-otp", asyncHandler(controller.verifyOtp.bind(controller)));
+router.post("/resend-otp", asyncHandler(controller.resendOtp.bind(controller)));
+router.post("/reset-password", asyncHandler(controller.resetPassword.bind(controller)));
 router.post(
   "/createAgent",
   authorize,
@@ -64,4 +67,5 @@ router.post(
   uplaod.single("profile_Img"),
   validateRequest(createAgentSchema),
   asyncHandler(controller.agentCreate.bind(controller)),
+
 );export default router;
