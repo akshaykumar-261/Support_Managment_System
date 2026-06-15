@@ -15,8 +15,8 @@ export const createAgentSchema = Joi.object({
   phoneNo: Joi.string().min(10).max(15).required(),
   address: Joi.string().max(200).required(),
   password: Joi.string().min(6).required(),
-  role_Id: Joi.number().valid(2).required(),
-  department: Joi.string().required().optional(),
+  role_Id: Joi.number().valid(2).default(2),
+  department: Joi.number().valid(1,2,3).required(),
   profile_Img: Joi.any().optional(),
 });
 export const userUpdateSchema = Joi.object({

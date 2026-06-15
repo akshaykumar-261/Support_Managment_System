@@ -7,13 +7,22 @@ import { getFirebaseAdmin } from "./fireBaseAdmin.js";
 export const sendPushNotification = async (deviceToken, title, body, extraData = {}) => {
   try {
     const firebaseApp = getFirebaseAdmin();
-    const messagingInstance = getMessaging(firebaseApp);
+        console.log("Firebase App Name:", firebaseApp.name);
+    console.log("Sending To Token:", deviceToken);
+     const messagingInstance = getMessaging(firebaseApp);
+
+    // Standardize all extra data values to strings (FCM requirement for data payload)
+    const stringifiedData = {};
+    Object.keys(extraData).forEach(key => {
+        stringifiedData[key] = String(extraData[key]);
+    });
 
     const message = {
       token: deviceToken,
       notification: { title, body },
-      data: extraData,
+      data: stringifiedData,
     };
+        console.log("Message Payload:", message);
 
     // 2. Send Request
     const response = await messagingInstance.send(message);

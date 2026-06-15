@@ -3,3 +3,5 @@ node_modules/*
 logs
 *.log
 .history
+demoticket-3c41a-firebase-adminsdk-fbsvc-24e42261cc.json
+ticketbook-1edd4-firebase-adminsdk-fbsvc-d4e992d63a.json

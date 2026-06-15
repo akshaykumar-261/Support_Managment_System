@@ -14,7 +14,8 @@ export default class ticketController {
     this.Model = db.models;
     await this.service.init(db);
   }
-async ticketCreate(req, res) {
+  async ticketCreate(req, res) {
+  
   const ticketNo = commanFunction.generateTicketNumber();
   if (!req.user || !(req.user.id || req.user.dataValues?.id)) {
     return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
@@ -33,7 +34,8 @@ async ticketCreate(req, res) {
     const adminIds = await this.service.getSuperAdminIds();
     
     if (adminIds.length > 0) {
-      const adminTokens = await this.service.getUserDeviceTokens(adminIds);
+     const adminTokens=  await this.service.getUserDeviceTokens(adminIds);
+      
       
       if (adminTokens.length > 0) {
         const title = "New Ticket Created!";

@@ -29,13 +29,25 @@ export default class UserService {
     return this.Model.Users.update({ refreshToken: null }, { where: { id } });
   }
   async createUser(payload) {
-  const user = await this.Model.Users.create(payload);
-  return await this.Model.Users.findByPk(user.id, {
-    attributes: {
-      exclude: ['password', 'createdAt', 'updatedAt','department_Id','refreshToken']
-    }
-  });
-}
+    const user = await this.Model.Users.create(payload);
+    return await this.Model.Users.findByPk(user.id, {
+      attributes: {
+        exclude: [
+          "password",
+          "createdAt",
+          "updatedAt",
+          "department_Id",
+          "refreshToken",
+          "otp",
+          "otp_expire",
+          "otp_type",
+          "is_active",
+          "is_verified",
+          "deletedAt"
+        ],
+      },
+    });
+  }
   async deleteUserById(id) {
     const payload = { deletedAt: new Date(), is_active: 0 };
     return this.Model.Users.update(payload, { where: { id: id } });
@@ -45,20 +57,6 @@ export default class UserService {
       where: {
         deletedAt: null,
       },
-
-      include: [
-        {
-          model: this.Model.Roles,
-          //as: "role",
-          attributes: ["id", "name"],
-
-          where: role
-            ? {
-                name: role,
-              }
-            : undefined,
-        },
-      ],
 
       order: [["id", "DESC"]],
 
@@ -70,7 +68,9 @@ export default class UserService {
         exclude: ["password", "otp"],
       },
     };
-
+   if (role) {
+  query.where.role_Id = Number(role);
+}
     if (name) {
       query.where.name = {
         [Op.like]: `%${name}%`,
@@ -87,11 +87,39 @@ export default class UserService {
       query.where.is_active = is_active;
     }
 
-    const { count, rows } = await this.Model.Users.findAndCountAll({
-      ...query,
-      offset,
-      limit,
-    });
+const { count, rows } = await this.Model.Users.findAndCountAll({
+  ...query,
+  offset,
+  limit,
+  attributes: {
+    exclude: [
+      "password",
+      "createdAt",
+      "updatedAt",
+      "refreshToken",
+      "otp",
+      "otp_expire",
+      "otp_type",
+      "is_active",
+      "is_verified",
+      "deletedAt",
+    ],
+  },
+});
+
+const modifiedRows = rows.map((user) => {
+  const userData = user.toJSON ? user.toJSON() : user;
+
+  if (userData.role_Id !== 2) {
+    delete userData.department_Id;
+  }
+  return userData;
+});
+
+return {
+  count,
+  rows: modifiedRows,
+};
 
     return { count, rows };
   }
@@ -115,7 +143,7 @@ export default class UserService {
       },
     });
   }
- async saveOtp(userId, otp,otptype) {
+  async saveOtp(userId, otp, otptype) {
     const expireTime = new Date(Date.now() + 5 * 60 * 1000); // 5 Minutes From Now
     console.log("Saving OTP:", otp);
     console.log("Saving Expire Time:", expireTime);
@@ -123,11 +151,19 @@ export default class UserService {
       {
         otp: otp,
         otp_expire: expireTime,
-        otp_type: otptype
+        otp_type: otptype,
       },
       {
         where: { id: userId },
-      }
+      },
     );
   }
+  async getUserWithPassword(id) {
+  return await this.Model.Users.findOne({
+    where: {
+      id,
+      deletedAt: null,
+    },
+  });
+}
 }

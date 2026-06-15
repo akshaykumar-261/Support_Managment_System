@@ -23,9 +23,17 @@ router.post(
   "/create",
   //authorize,
   //role,
-  uplaod.single("profile_Img"),
   validateRequest(createUserSchema),
+  uplaod.single("profile_Img"),
   asyncHandler(controller.userCreate.bind(controller)),
+);
+router.post(
+  "/create-Agent",
+  authorize,
+  role,
+  validateRequest(createAgentSchema),
+  uplaod.single("profile_Img"),
+  asyncHandler(controller.agentCreate.bind(controller)),
 );
 router.put(
   "/update/:id",
@@ -51,15 +59,36 @@ router.get(
   "/profile",
   authorize,
   checkRole("Super Admin", "Customer", "Agent"),
-  asyncHandler(controller.getProfile.bind(controller))
+  asyncHandler(controller.getProfile.bind(controller)),
 );
 router.post("/login", asyncHandler(controller.login.bind(controller)));
-router.post("/refreshToken", asyncHandler(controller.refreshToken.bind(controller)));
-router.post("/logout", authorize, asyncHandler(controller.logout.bind(controller)));
-router.post("/forgot-password", asyncHandler(controller.forgotPassword.bind(controller)));
+router.post(
+  "/refreshToken",
+  asyncHandler(controller.refreshToken.bind(controller)),
+);
+router.post(
+  "/logout",
+  authorize,
+  asyncHandler(controller.logout.bind(controller)),
+);
+router.post(
+  "/forgot-password",
+  asyncHandler(controller.forgotPassword.bind(controller)),
+);
 router.post("/verify-otp", asyncHandler(controller.verifyOtp.bind(controller)));
 router.post("/resend-otp", asyncHandler(controller.resendOtp.bind(controller)));
-router.post("/reset-password", asyncHandler(controller.resetPassword.bind(controller)));
+router.post(
+  "/reset-password",
+  asyncHandler(controller.resetPassword.bind(controller)),
+);
+router.post(
+  "/change-password",
+  authorize,
+    checkRole("Super Admin","Agent","Customer"),
+  asyncHandler(
+    controller.changePassword.bind(controller)
+  )
+);
 router.post(
   "/createAgent",
   authorize,
@@ -67,5 +96,5 @@ router.post(
   uplaod.single("profile_Img"),
   validateRequest(createAgentSchema),
   asyncHandler(controller.agentCreate.bind(controller)),
-
-);export default router;
+);
+export default router;

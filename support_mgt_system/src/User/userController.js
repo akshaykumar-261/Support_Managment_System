@@ -9,6 +9,7 @@ import * as commanFunction from "../../utility/commanFunction.js";
 import { ROLE } from "../helper/roleBase.js";
 import { sendForgotPasswordOtp } from "../../utility/sendForgotPasswordOtp.js"
 import { sendRegistrationOtp } from "../../utility/sendRegistrationOtp.js";
+import { sendAgentCredentials } from "../../utility/sendAgentCredentials.js";
 export default class userController {
   async init(db) {
     this.service = new userService();
@@ -47,28 +48,48 @@ export default class userController {
       user,
     });
   }
-  async agentCreate(req, res) {
-    const { email } = req.body;
-    const exitingUser = await this.service.getByEmail(email);
-    if (exitingUser) {
-      if (req.file) {
-        commanFunction.deleteFile(req.file.path);
-      }
-      return sendResponse(res, STATUS_CODE.BAD_REQUEST, userMessage.USER_EXIST);
-    }
-    let profileImage = null;
+async agentCreate(req, res) {
+  const { email, password, name } = req.body;
+
+  const exitingUser = await this.service.getByEmail(email);
+
+  if (exitingUser) {
     if (req.file) {
-      profileImage = req.file.path;
+      commanFunction.deleteFile(req.file.path);
     }
-    const user = await this.service.createUser({
-      ...req.body,
-      profile_Img: profileImage,
-      role_Id: ROLE.AGENT
-    });
-    return sendResponse(res, STATUS_CODE.CREATED, userMessage.USER_CREATED, {
-      user,
-    });
+
+    return sendResponse(
+      res,
+      STATUS_CODE.BAD_REQUEST,
+      userMessage.USER_EXIST
+    );
   }
+
+  let profileImage = null;
+
+  if (req.file) {
+    profileImage = req.file.path;
+  }
+
+  const user = await this.service.createUser({
+    ...req.body,
+    profile_Img: profileImage,
+    role_Id: ROLE.AGENT,
+  });
+
+  await sendAgentCredentials(
+    user.email,
+    user.name,
+    password
+  );
+
+  return sendResponse(
+    res,
+    STATUS_CODE.CREATED,
+    userMessage.USER_CREATED,
+    { user }
+  );
+}
   async userUpdate(req, res) {
     const { id } = req.params;
     const existingUser = await this.service.getUserById(id);
@@ -392,4 +413,53 @@ export default class userController {
       userMessage.PASSWORD_RESET_SUCCESS
     );
   }
+  async changePassword(req, res) {
+  try {
+    const userId = req.user.id;
+
+    const { oldPassword, newPassword } = req.body;
+
+    const user = await this.service.getUserById(userId);
+
+    if (!user) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.USER_NOT_FOUND
+      );
+    }
+
+    const isMatch = await bcrypt.compare(
+      oldPassword,
+      user.password
+    );
+
+    if (!isMatch) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        "Old password is incorrect"
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.service.updateUser(userId, {
+      password: hashedPassword,
+    });
+
+    return sendResponse(
+      res,
+      STATUS_CODE.SUCCESS,
+      "Password changed successfully"
+    );
+
+  } catch (error) {
+    return sendResponse(
+      res,
+      STATUS_CODE.SERVER_ERROR,
+      error.message
+    );
+  }
+}
 }
