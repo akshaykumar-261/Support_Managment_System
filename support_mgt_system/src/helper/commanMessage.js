@@ -14,6 +14,7 @@ export const userMessage = {
   INVALID_CREDENTIALS: "Invalid email or password",
   OTP_SENT: "OTP sent to your email",
   OTP_INVALID: "Invalid OTP",
+  INVALID_OTP:"This is not correct otp",
   OTP_NOT_FOUND: "OTP_NOT_FOUND",
   VERIFY_EMAIL:"Please verify your email before login",
   INVALID_TYPE:"Invalid OTP type",

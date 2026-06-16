@@ -52,7 +52,7 @@ export const generateRefreshToken = (user) => {
     },
   );
   };
-  export const getPagination = (page = 1, limit = 5) => {
+  export const getPagination = (page = 1, limit = 10) => {
     page = Number(page);
     limit = Number(limit);
     if (page < 1) page = 1;

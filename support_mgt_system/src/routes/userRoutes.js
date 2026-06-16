@@ -9,10 +9,15 @@ import UserDevices from "../../dataBase/models/userDevice.js";
 import authorize from "../middleweare/authmiddleweare.js";
 import checkRole from "../middleweare/roleBaseMiddleweare.js";
 import {
+  changePasswordValidation,
   createAgentSchema,
   createUserSchema,
+  forgotPasswordSchema,
+  resendOtpSchema,
+  resetPasswordValidation,
   userUpdateSchema,
   validateRequest,
+  verifyOtpSchema,
 } from "../User/userValidation.js";
 const router = express.Router();
 const controller = new userController();
@@ -73,21 +78,30 @@ router.post(
 );
 router.post(
   "/forgot-password",
+  validateRequest(forgotPasswordSchema),
   asyncHandler(controller.forgotPassword.bind(controller)),
 );
-router.post("/verify-otp", asyncHandler(controller.verifyOtp.bind(controller)));
-router.post("/resend-otp", asyncHandler(controller.resendOtp.bind(controller)));
+router.post(
+  "/verify-otp",
+  validateRequest(verifyOtpSchema),
+  asyncHandler(controller.verifyOtp.bind(controller)),
+);
+router.post(
+  "/resend-otp",
+  validateRequest(resendOtpSchema),
+  asyncHandler(controller.resendOtp.bind(controller)),
+);
 router.post(
   "/reset-password",
+  validateRequest(resetPasswordValidation),
   asyncHandler(controller.resetPassword.bind(controller)),
 );
 router.post(
   "/change-password",
   authorize,
-    checkRole("Super Admin","Agent","Customer"),
-  asyncHandler(
-    controller.changePassword.bind(controller)
-  )
+  checkRole("Super Admin", "Agent", "Customer"),
+  validateRequest(changePasswordValidation),
+  asyncHandler(controller.changePassword.bind(controller)),
 );
 router.post(
   "/createAgent",

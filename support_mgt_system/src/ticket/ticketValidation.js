@@ -1,7 +1,7 @@
 import Joi from "joi";
 export const createTicketSchema = Joi.object({
-  title: Joi.string().max(100).required(),
-  description: Joi.string().required(),
+  title: Joi.string().max(50).required(),
+  description: Joi.string().max(200).required(),
   priority: Joi.string().valid("low", "medium", "high").required(),
   department_Id: Joi.number().optional(),
 });

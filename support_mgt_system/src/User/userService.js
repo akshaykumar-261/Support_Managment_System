@@ -52,7 +52,7 @@ export default class UserService {
     const payload = { deletedAt: new Date(), is_active: 0 };
     return this.Model.Users.update(payload, { where: { id: id } });
   }
-  async getUserList({ offset = 0, limit = 10, role, name, email, is_active }) {
+  async getUserList({ offset = 0, limit = 10, role, name, email, is_active,search}) {
     const query = {
       where: {
         deletedAt: null,
@@ -70,7 +70,32 @@ export default class UserService {
     };
    if (role) {
   query.where.role_Id = Number(role);
-}
+   }
+     if (search) {
+    query.where[Op.or] = [
+      {
+        name: {
+          [Op.like]: `%${search}%`,
+        },
+      },
+      {
+        email: {
+          [Op.like]: `%${search}%`,
+        },
+      },
+      {
+        phoneNo: {
+          [Op.like]: `%${search}%`,
+        },
+      },
+      {
+        address: {
+          [Op.like]: `%${search}%`,
+        },
+      },
+    ];
+  }
+
     if (name) {
       query.where.name = {
         [Op.like]: `%${name}%`,

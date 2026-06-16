@@ -31,11 +31,86 @@ export default class TicketService {
       raw: true,
     });
   };
-  getTicketByCustomer = async (customerId) => {
-    return this.Model.TicketModel.findAll({
-      where: {
-        customer_Id: customerId,
+
+getTicketByIdWithCustomer = async (ticketId) => {
+  if (!ticketId) return null;
+  return await this.Model.TicketModel.findOne({
+    where: {
+      id: ticketId,
+    },
+    include: [
+      {
+        model: this.Model.UserModel,
+        as: "customer",
+        attributes: ["id", "name", "email"],
       },
+    ],
+    raw: true,
+  });
+};
+  getTicketByCustomer = async (customerId, query = {}) => {
+  if (!customerId) return null;
+  const whereCondition = {
+    customer_Id: customerId,
+  };
+
+  if (query.search) {
+    whereCondition[Op.or] = [
+      { title: { [Op.substring]: query.search.trim() } },
+      { ticket_number: { [Op.substring]: query.search.trim() } },
+      { description: { [Op.substring]: query.search.trim() } },
+      { status: { [Op.substring]: query.search.trim() } },
+        {priority: { [Op.substring]: query.search.trim() } }, 
+    ];
+  }
+
+  // 2. Pagination Setup (Using your existing getPagination helper)
+  const { page, limit, offset } = getPagination(query.page, query.limit);
+  const result = await this.Model.TicketModel.findAndCountAll({
+    where: whereCondition,
+    order: [["id", "DESC"]],
+    limit,
+    offset,
+    raw: true,
+    attributes: {
+      exclude: [
+        "close_At",
+        "department_Id",
+        "current_Agent",
+        "customer_Id",
+        "resolve_At",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  });
+
+  // Controller ke paginationsResponse function ke liye format return karein
+  return { 
+    count: result.count, 
+    rows: result.rows, 
+    page, 
+    limit 
+  };
+};
+  getTicketByAgentId = async (agentId, query = {}) => {
+    if (!agentId) return null;
+    const whereCondition = {
+      current_Agent: agentId
+    }
+    if (query.search) {
+      const searchKeyword = query.search.trim();
+      whereCondition[Op.or] = [
+        { title: { [Op.substring]: searchKeyword } },
+        { ticket_number: { [Op.substring]: searchKeyword } },
+        { description: { [Op.substring]: searchKeyword } },
+        { status: { [Op.substring]: searchKeyword } },
+        { priority: { [Op.substring]: searchKeyword } },
+      ];
+    }
+    const { page, limit, offset } = getPagination(query.page, query.limit);
+  const result = await this.Model.TicketModel.findAndCountAll({
+      where: whereCondition,
       include: [
         {
           model: this.Model.UserModel,
@@ -43,22 +118,16 @@ export default class TicketService {
           attributes: ["id", "name", "email"],
         },
       ],
-      raw: true,
-    });
-  };
-  getTicketByAgentId = async (agentId) => {
-    return this.Model.TicketModel.findAll({
-      where: {
-        current_Agent: agentId
-      },
-      include: [
-        {
-          model: this.Model.UserModel,
-          as: "customer",
-          attributes: ["id", "name", "email"],
-        },
-      ]
-    })
+      order: [["id", "DESC"]], // Naye tickets humesha upar dikhane ke liye
+      limit,
+      offset,
+  });
+    return {
+      count: result.count,
+      rows: result.rows,
+      page,
+      limit,
+    };
   }
   async createTicket(payload) {
     const ticket = await this.Model.TicketModel.create(payload);
@@ -73,7 +142,7 @@ export default class TicketService {
   }
   async getAllTickets(query) {
     const where = {};
-
+    const customerWhere = {};
     if (query.status) {
       where.status = query.status;
     }
@@ -83,23 +152,36 @@ export default class TicketService {
     }
 
     // ✅ Date filter — ?date=2026-05-28 ya ?date=today
-    if (query.date) {
-      const inputDate =
-        query.date === "today" ? new Date() : new Date(query.date);
+    // if (query.date) {
+    //   const inputDate =
+    //     query.date === "today" ? new Date() : new Date(query.date);
 
-      // Us din ka start: 2026-05-28 00:00:00
-      const startOfDay = new Date(inputDate);
-      startOfDay.setHours(0, 0, 0, 0);
+    //   // Us din ka start: 2026-05-28 00:00:00
+    //   const startOfDay = new Date(inputDate);
+    //   startOfDay.setHours(0, 0, 0, 0);
 
-      // Us din ka end: 2026-05-28 23:59:59
-      const endOfDay = new Date(inputDate);
-      endOfDay.setHours(23, 59, 59, 999);
+    //   // Us din ka end: 2026-05-28 23:59:59
+    //   const endOfDay = new Date(inputDate);
+    //   endOfDay.setHours(23, 59, 59, 999);
 
-      where.createdAt = {
-        [Op.between]: [startOfDay, endOfDay],
-      };
-    }
-
+    //   where.createdAt = {
+    //     [Op.between]: [startOfDay, endOfDay],
+    //   };
+    // }
+    if (query.search) {
+    const searchKeyword = query.search.trim();
+    where[Op.or] = [
+      { title: { [Op.substring]: searchKeyword } },
+      { ticket_number: { [Op.substring]: searchKeyword } },
+        { description: { [Op.substring]: searchKeyword} },
+      { status: { [Op.substring]: searchKeyword } },
+        {priority: { [Op.substring]:searchKeyword} }, 
+    ];
+    customerWhere[Op.or] = [
+      { name: { [Op.substring]: searchKeyword } },
+      { email: { [Op.substring]: searchKeyword } }
+    ];
+  }
     const { page, limit, offset } = getPagination(query.page, query.limit);
 
     const result = await this.Model.TicketModel.findAndCountAll({
@@ -170,6 +252,7 @@ export default class TicketService {
 async getUserDeviceTokens(userIds) {
   // agar single id hai toh array me convert kar dega
   const ids = Array.isArray(userIds) ? userIds : [userIds];
+  console.log("=========================>",ids);
   const devices = await this.Model.UserDevices.findAll({
     where: {
       user_id: { [Op.in]: ids },

@@ -7,7 +7,7 @@ import { sendResponse } from "../helper/responseHandler.js";
 import { STATUS_CODE } from "../helper/statusCode.js";
 import * as commanFunction from "../../utility/commanFunction.js";
 import { ROLE } from "../helper/roleBase.js";
-import { sendForgotPasswordOtp } from "../../utility/sendForgotPasswordOtp.js"
+import { sendForgotPasswordOtp } from "../../utility/sendForgotPasswordOtp.js";
 import { sendRegistrationOtp } from "../../utility/sendRegistrationOtp.js";
 import { sendAgentCredentials } from "../../utility/sendAgentCredentials.js";
 export default class userController {
@@ -37,59 +37,44 @@ export default class userController {
       otp,
       otp_type: "EMAIL_VERIFICATION",
       is_verified: false,
-    otp_expire: new Date(Date.now() + 10 * 60 * 1000),
+      otp_expire: new Date(Date.now() + 10 * 60 * 1000),
     });
-    await sendRegistrationOtp(
-    user.email,
-    otp,
-    user.name
-  );
+    await sendRegistrationOtp(user.email, otp, user.name);
     return sendResponse(res, STATUS_CODE.CREATED, userMessage.USER_CREATED, {
       user,
     });
   }
-async agentCreate(req, res) {
-  const { email, password, name } = req.body;
+  async agentCreate(req, res) {
+    const { email, password, name } = req.body;
 
-  const exitingUser = await this.service.getByEmail(email);
+    const exitingUser = await this.service.getByEmail(email);
 
-  if (exitingUser) {
-    if (req.file) {
-      commanFunction.deleteFile(req.file.path);
+    if (exitingUser) {
+      if (req.file) {
+        commanFunction.deleteFile(req.file.path);
+      }
+
+      return sendResponse(res, STATUS_CODE.BAD_REQUEST, userMessage.USER_EXIST);
     }
 
-    return sendResponse(
-      res,
-      STATUS_CODE.BAD_REQUEST,
-      userMessage.USER_EXIST
-    );
+    let profileImage = null;
+
+    if (req.file) {
+      profileImage = req.file.path;
+    }
+
+    const user = await this.service.createUser({
+      ...req.body,
+      profile_Img: profileImage,
+      role_Id: ROLE.AGENT,
+    });
+
+    await sendAgentCredentials(user.email, user.name, password);
+
+    return sendResponse(res, STATUS_CODE.CREATED, userMessage.USER_CREATED, {
+      user,
+    });
   }
-
-  let profileImage = null;
-
-  if (req.file) {
-    profileImage = req.file.path;
-  }
-
-  const user = await this.service.createUser({
-    ...req.body,
-    profile_Img: profileImage,
-    role_Id: ROLE.AGENT,
-  });
-
-  await sendAgentCredentials(
-    user.email,
-    user.name,
-    password
-  );
-
-  return sendResponse(
-    res,
-    STATUS_CODE.CREATED,
-    userMessage.USER_CREATED,
-    { user }
-  );
-}
   async userUpdate(req, res) {
     const { id } = req.params;
     const existingUser = await this.service.getUserById(id);
@@ -125,7 +110,7 @@ async agentCreate(req, res) {
     );
   }
   async getUserList(req, res) {
-    const { page = 1, limit = 10, role, name, email, is_active } = req.query;
+    const { page = 1, limit = 10, role, name, email, is_active,search} = req.query;
     const pagignation = commanFunction.getPagination(page, limit);
     const users = await this.service.getUserList({
       offset: pagignation.offset,
@@ -134,6 +119,7 @@ async agentCreate(req, res) {
       name,
       email,
       is_active,
+      search,
     });
     const response = commanFunction.paginationsResponse({
       count: users.count,
@@ -166,7 +152,7 @@ async agentCreate(req, res) {
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.USER_DELETED);
   }
   async login(req, res) {
-    const { email, password,device_token, device_type, device_id} = req.body;
+    const { email, password, device_token, device_type, device_id } = req.body;
     const userInDb = await this.service.getByEmail(email);
     if (!userInDb) {
       return sendResponse(
@@ -179,8 +165,8 @@ async agentCreate(req, res) {
       return sendResponse(
         res,
         STATUS_CODE.BAD_REQUEST,
-        userMessage.VERIFY_EMAIL
-      )
+        userMessage.VERIFY_EMAIL,
+      );
     }
     const isMatch = await bcrypt.compare(password, userInDb.password);
     if (!isMatch) {
@@ -195,14 +181,34 @@ async agentCreate(req, res) {
     await this.service.updateUser(userInDb.id, {
       refreshToken,
     });
-    if (device_token) {
-        await this.Models.UserDevices.create({
-        user_id: userInDb.id,
-        device_token: device_token,
-        device_type: device_type || "android",
-        device_id: device_id,
-        is_login: true,
+    if (device_token && device_id) {
+      const existingDevice = await this.Models.UserDevices.findOne({
+        where: {
+          user_id: userInDb.id,
+          device_id: device_id,
+        },
       });
+      console.log("==========================>", existingDevice);
+      if (existingDevice) {
+        const abc = await existingDevice.update({
+          device_token,
+          device_type: device_type || "android",
+          is_login: true,
+          login_time: new Date(),
+          logout_time: null,
+        });
+        console.log("=========================>", abc);
+      } else {
+        const a = await this.Models.UserDevices.create({
+          user_id: userInDb.id,
+          device_token,
+          device_type: device_type || "android",
+          device_id,
+          is_login: true,
+          login_time: new Date(),
+        });
+        console.log("=====================>", a);
+      }
     }
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGIN_SUCCESS, {
       accessToken,
@@ -242,157 +248,140 @@ async agentCreate(req, res) {
   async logout(req, res) {
     try {
       const user = req.user;
+      const { device_id } = req.body;
       if (!user || !user.id) {
         return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
       }
       await this.service.clearRefreshToken(user.id);
+      await this.Models.UserDevices.update(
+        {
+          is_login: false,
+          logout_time: new Date(),
+        },
+        {
+          where: {
+            user_id: user.id,
+            device_id,
+          },
+        },
+      );
       return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGOUT_SUCCESS);
     } catch (error) {
       return sendResponse(res, STATUS_CODE.SERVER_ERROR, authMessage.INVALID);
     }
   }
   async getProfile(req, res) {
-  try {
-    const userId = req.user.id;
+    try {
+      const userId = req.user.id;
 
-    const user = await this.service.getProfile(userId);
+      const user = await this.service.getProfile(userId);
 
-    if (!user) {
+      if (!user) {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+          userMessage.USER_NOT_FOUND,
+        );
+      }
+
       return sendResponse(
         res,
-        STATUS_CODE.BAD_REQUEST,
-        userMessage.USER_NOT_FOUND
+        STATUS_CODE.SUCCESS,
+        userMessage.FETCH_PROFILE,
+        user,
       );
+    } catch (error) {
+      return sendResponse(res, STATUS_CODE.SERVER_ERROR, error.message);
     }
-
-    return sendResponse(
-      res,
-      STATUS_CODE.SUCCESS,
-      userMessage.FETCH_PROFILE,
-      user
-    );
-  } catch (error) {
-    return sendResponse(
-      res,
-      STATUS_CODE.SERVER_ERROR,
-      error.message
-    );
-  }
   }
   async forgotPassword(req, res) {
     const { email } = req.body;
     const user = await this.service.getByEmail(email);
-    if(!user){
+    if (!user) {
       return sendResponse(
         res,
         STATUS_CODE.BAD_REQUEST,
-        userMessage.USER_NOT_FOUND
+        userMessage.USER_NOT_FOUND,
       );
     }
     const otp = commanFunction.generateSecureOtp(6);
     const otpType = "FORGOT_PASSWORD";
-    await this.service.saveOtp(user.id,otp,otpType);
-    await sendForgotPasswordOtp(
-      user.email,
-      otp,
-      user.name 
-    )
-    return sendResponse(
-      res,
-      STATUS_CODE.SUCCESS,
-      userMessage.OTP_SENT
-    )
+    await this.service.saveOtp(user.id, otp, otpType);
+    await sendForgotPasswordOtp(user.email, otp, user.name);
+    return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.OTP_SENT);
   }
   async verifyOtp(req, res) {
-  const { email, otp, type } = req.body;
-  const user = await this.service.getByEmail(email);
-    if (!user) {
-    return sendResponse(
-      res,
-      STATUS_CODE.BAD_REQUEST,
-      userMessage.USER_NOT_FOUND
-    );
-  }
-    if (!user.otp)
-    {
-      return sendResponse(res,STATUS_CODE.BAD_REQUEST,userMessage.OTP_NOT_FOUND)
-    } 
-   
-     if (new Date() > new Date(user.otp_expire)) {
-    return sendResponse(
-      res,
-      STATUS_CODE.BAD_REQUEST,
-      userMessage.OTP_EXPIRED
-    );
-  }
-    if (!user.otp || user.otp.toString() !== otp.toString()) {
-    return sendResponse(
-      res,
-      STATUS_CODE.BAD_REQUEST,
-      userMessage.INVALID_OTP
-    );
-    }
-     if (user.otp_type !== type) {
-    return sendResponse(
-      res,
-      STATUS_CODE.BAD_REQUEST,
-      userMessage.INVALID_TYPE
-    );
-    }
-
-  const payload = {
-    otp: null,
-    otp_expire: null,
-    otp_type: null,
-  };
-
-  if (type === "EMAIL_VERIFICATION") {
-    payload.is_verified = true;
-  }
-
-  await this.service.updateUser(user.id, payload);
-
-  return sendResponse(
-    res,
-    STATUS_CODE.SUCCESS,
-    userMessage.OTP_VERIFIED
-  );
-}
-  async resendOtp(req, res) {
-    const { email,type } = req.body;
+    const { email, otp, type } = req.body;
     const user = await this.service.getByEmail(email);
-    if(!user){
+    if (!user) {
       return sendResponse(
         res,
         STATUS_CODE.BAD_REQUEST,
-        userMessage.USER_NOT_FOUND
+        userMessage.USER_NOT_FOUND,
+      );
+    }
+    if (!user.otp) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.OTP_NOT_FOUND,
+      );
+    }
+    if (!user.otp || user.otp.toString() !== otp.toString()) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.INVALID_OTP,
+      );
+    }
+
+    if (new Date() > new Date(user.otp_expire)) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.OTP_EXPIRED,
+      );
+    }
+    if (user.otp_type !== type) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.INVALID_TYPE,
+      );
+    }
+
+    const payload = {
+      otp: null,
+      otp_expire: null,
+      otp_type: null,
+    };
+
+    if (type === "EMAIL_VERIFICATION") {
+      payload.is_verified = true;
+    }
+
+    await this.service.updateUser(user.id, payload);
+
+    return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.OTP_VERIFIED);
+  }
+  async resendOtp(req, res) {
+    const { email, type } = req.body;
+    const user = await this.service.getByEmail(email);
+    if (!user) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.USER_NOT_FOUND,
       );
     }
     const otp = commanFunction.generateSecureOtp(6);
     await this.service.saveOtp(user.id, otp, type);
     if (type === "EMAIL_VERIFICATION") {
-      await sendRegistrationOtp(
-        user.email,
-        otp,
-        user.name
-      )
+      await sendRegistrationOtp(user.email, otp, user.name);
     } else {
-      await sendForgotPasswordOtp(
-        user.email,
-        otp,
-        user.name
-      )
+      await sendForgotPasswordOtp(user.email, otp, user.name);
     }
-    await sendForgotPasswordOtp(
-      user.email,
-      otp,
-      user.name 
-    )
-    return sendResponse(
-      res,
-      STATUS_CODE.SUCCESS,
-      userMessage.OTP_SENT
-    );
+    return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.OTP_SENT);
   }
   async resetPassword(req, res) {
     const { email, newPassword } = req.body;
@@ -402,64 +391,84 @@ async agentCreate(req, res) {
       return sendResponse(
         res,
         STATUS_CODE.BAD_REQUEST,
-        userMessage.USER_NOT_FOUND
-      )
+        userMessage.USER_NOT_FOUND,
+      );
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this.service.updateUser(user.id, { password: hashedPassword });
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
-      userMessage.PASSWORD_RESET_SUCCESS
+      userMessage.PASSWORD_RESET_SUCCESS,
     );
   }
   async changePassword(req, res) {
-  try {
-    const userId = req.user.id;
+    try {
+      const userId = req.user.id;
 
-    const { oldPassword, newPassword } = req.body;
+      const { oldPassword, newPassword } = req.body;
 
-    const user = await this.service.getUserById(userId);
+      const user = await this.service.getUserById(userId);
 
-    if (!user) {
+      if (!user) {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+          userMessage.USER_NOT_FOUND,
+        );
+      }
+
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+
+      if (!isMatch) {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+          "Old password is incorrect",
+        );
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await this.service.updateUser(userId, {
+        password: hashedPassword,
+      });
+
       return sendResponse(
         res,
-        STATUS_CODE.BAD_REQUEST,
-        userMessage.USER_NOT_FOUND
+        STATUS_CODE.SUCCESS,
+        "Password changed successfully",
       );
+    } catch (error) {
+      return sendResponse(res, STATUS_CODE.SERVER_ERROR, error.message);
     }
-
-    const isMatch = await bcrypt.compare(
-      oldPassword,
-      user.password
-    );
-
-    if (!isMatch) {
-      return sendResponse(
-        res,
-        STATUS_CODE.BAD_REQUEST,
-        "Old password is incorrect"
-      );
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await this.service.updateUser(userId, {
-      password: hashedPassword,
-    });
-
-    return sendResponse(
-      res,
-      STATUS_CODE.SUCCESS,
-      "Password changed successfully"
-    );
-
-  } catch (error) {
-    return sendResponse(
-      res,
-      STATUS_CODE.SERVER_ERROR,
-      error.message
-    );
   }
-}
+  async logout(req, res) {
+    try {
+      const user = req.user;
+      const { device_id } = req.body;
+      if (!user || !user.id) {
+        return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
+      }
+
+      await this.service.clearRefreshToken(user.id);
+
+      await this.Models.UserDevices.update(
+        {
+          is_login: false,
+          logout_time: new Date(),
+        },
+        {
+          where: {
+            user_id: user.id,
+            device_id,
+          },
+        },
+      );
+
+      return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGOUT_SUCCESS);
+    } catch (error) {
+      return sendResponse(res, STATUS_CODE.SERVER_ERROR, error.message);
+    }
+  }
 }
