@@ -1,0 +1,1 @@
+ npx sequelize-cli db:migrate --migrations-path dataBase/migration --name 20260617063818-newNotificationModel.cjs // for run particular migration 

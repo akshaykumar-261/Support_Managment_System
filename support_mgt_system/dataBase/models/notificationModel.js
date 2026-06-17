@@ -1,4 +1,3 @@
-// Notification Model
 import { DataTypes } from "sequelize";
 import { sequelize } from "../../config/db.js";
 
@@ -10,24 +9,31 @@ const NotificationModel = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-
-    user_Id: {
+    user_id: {
       type: DataTypes.INTEGER,
+      allowNull: false,
     },
-
-    message: {
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    body: {
       type: DataTypes.TEXT,
       allowNull: false,
     },
-
-    type: {
-      type: DataTypes.STRING,
+    data_payload: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    is_read: {
+      type: DataTypes.BOOLEAN,
       allowNull: false,
+      defaultValue: false,
     },
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 export default NotificationModel;

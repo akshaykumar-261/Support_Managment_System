@@ -145,7 +145,7 @@ const socketHandler = (io) => {
             }
 
             console.log(
-              `Bhejne wala ID: ${currentUserId} | Target Receiver IDs:`,
+              `Sender ID: ${currentUserId} | Target Receiver IDs:`,
               receiverIds,
             );
             //Fetch Device_token
@@ -168,7 +168,9 @@ const socketHandler = (io) => {
                     : messageText;
 
                 const dataPayload = {
+                  screen: "ticketdiscussionscreen", // frontend  read this
                   ticket_id: String(ticketId),
+                 ticket_title: ticket ? String(ticket.title) : "Support_Mgt_Ticket",
                   action: "chat_message",
                 };
 
@@ -217,3 +219,42 @@ const socketHandler = (io) => {
 };
 
 export default socketHandler;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

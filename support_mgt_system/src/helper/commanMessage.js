@@ -14,7 +14,7 @@ export const userMessage = {
   INVALID_CREDENTIALS: "Invalid email or password",
   OTP_SENT: "OTP sent to your email",
   OTP_INVALID: "Invalid OTP",
-  INVALID_OTP:"This is not correct otp",
+  INVALID_OTP:"Invalid OTP",
   OTP_NOT_FOUND: "OTP_NOT_FOUND",
   VERIFY_EMAIL:"Please verify your email before login",
   INVALID_TYPE:"Invalid OTP type",
@@ -60,6 +60,12 @@ export const TICKET_MESSAGE = {
   MESSAGE_FETCHED: "Message(s) fetched successfully",
   MESSAGE_NOT_FOUND: "Message not found",
   MESSAGE_DELETED: "Message deleted successfully",
+  NOTIFICATION_ID: "Notification ID is required",
+  NOTIFICATION_NOT_FOUND: "Notification not found",
+  NOTIFICATION_SUCCESS: "Notification marked as read successfully",
+  NOTIFICATION_FETCH: "Notifications fetched successfully",
+  AGENT_ID: "Agent Id is required",
+  AGENT_DASHBOARD:  "Agent Dashboard Fetched Successfully"
 }
 export const AGENT_MESSAGE = {
   AGENTS_LIST_FETCHED: "Agents list fetched successfully",

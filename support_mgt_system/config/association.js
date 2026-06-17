@@ -2,10 +2,10 @@ import UserModel from "../dataBase/models/user.js";
 import RoleModel from "../dataBase/models/roles.js";
 import DepartmentModel from "../dataBase/models/department.js";
 import TicketModel from "../dataBase/models/ticket.js";
-import NotificationModel from "../dataBase/models/notification.js";
 import TicketMessageModel from "../dataBase/models/ticketMessage.js";
 import TicketHistoryModel from "../dataBase/models/ticketHistory.js";
 import UserDeviceModel from "../dataBase/models/userDevice.js";
+import NotificationModel from "../dataBase/models/notificationModel.js"
 // User Associations
 UserModel.belongsTo(RoleModel, {
   foreignKey: "role_Id",
@@ -24,10 +24,6 @@ TicketModel.belongsTo(UserModel, {
 TicketModel.belongsTo(UserModel, {
   foreignKey: "customer_Id",
   as: "customer",
-});
-// Notification Associations
-NotificationModel.belongsTo(UserModel, {
-  foreignKey: "user_Id",
 });
 // Ticket Message Associations
 TicketMessageModel.belongsTo(TicketModel, {
@@ -73,4 +69,14 @@ UserModel.hasMany(UserDeviceModel, {
 UserDeviceModel.belongsTo(UserModel, {
   foreignKey: "user_id",
   as: "user",
+});
+UserModel.hasMany(NotificationModel, {
+  foreignKey: "user_id",
+  as: "notifications",
+  onDelete: "CASCADE",
+  onUpdate: "CASCADE"
+});
+NotificationModel.belongsTo(UserModel, {
+  foreignKey: "user_id",
+  as: "user"
 });

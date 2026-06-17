@@ -126,7 +126,6 @@ const { count, rows } = await this.Model.Users.findAndCountAll({
       "otp_expire",
       "otp_type",
       "is_active",
-      "is_verified",
       "deletedAt",
     ],
   },
@@ -134,7 +133,7 @@ const { count, rows } = await this.Model.Users.findAndCountAll({
 
 const modifiedRows = rows.map((user) => {
   const userData = user.toJSON ? user.toJSON() : user;
-
+ userData.is_verified = Boolean(userData.is_verified);
   if (userData.role_Id !== 2) {
     delete userData.department_Id;
   }

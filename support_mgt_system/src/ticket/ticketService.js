@@ -206,7 +206,7 @@ getTicketByIdWithCustomer = async (ticketId) => {
     return { count: result.count, rows: result.rows, page, limit };
   }
   async getAgentsList(filter = {}) {
-    const where = { is_active: true, deletedAt: null };
+    const where = { is_active: true,is_verified:true, deletedAt: null };
     // allow optional department filter
     if (filter.department_Id) {
       where.department_Id = filter.department_Id;
@@ -220,7 +220,7 @@ getTicketByIdWithCustomer = async (ticketId) => {
           attributes: ["id", "name"],
         },
       ],
-      attributes: ["id", "name", "email", "department_Id", "profile_Img"],
+      attributes: ["id", "name", "email", "department_Id", "profile_Img","is_verified"],
       order: [["id", "DESC"]],
     });
   }
@@ -250,20 +250,21 @@ getTicketByIdWithCustomer = async (ticketId) => {
   }
 
 async getUserDeviceTokens(userIds) {
-  // agar single id hai toh array me convert kar dega
   const ids = Array.isArray(userIds) ? userIds : [userIds];
-  console.log("=========================>",ids);
+  console.log("=========================>", ids);
+  
+  // Pure objects fetch karein jisme user_id aur device_token dono hon
   const devices = await this.Model.UserDevices.findAll({
     where: {
       user_id: { [Op.in]: ids },
       is_login: true,
       device_token: { [Op.ne]: null }
     },
-    attributes: ["device_token"],
+    attributes: ["user_id", "device_token"], 
     raw: true
   });
   
-  return devices.map(d => d.device_token);
+  return devices; // .map() hata diya hai, ab ye array of objects dega
 }
 
 async getSuperAdminIds() {
@@ -316,6 +317,45 @@ async getSuperAdminIds() {
     inProgressTickets,
   };
   }
-  
+ 
+  async getUserNotifications(userId, query = {}) {
+    if (!userId) return null;
+    const { page, limit, offset } = getPagination(query.page, query.limit);
+    const result = await this.Model.NotificationModel.findAndCountAll({
+      where: {
+        user_id: userId
+      },
+      order: [["id", "DESC"]],
+      limit,
+      offset,
+      raw: true
+    });
+    const unreadCount = await this.Model.NotificationModel.count({
+      where: {
+        user_id: userId,
+        is_read: 0
+      }
+    })
+    return {
+      count: result.count,
+      unreadCount:unreadCount,
+      rows: result.rows,
+      page,
+      limit,
+    };
+  }
+  async markNotificationAsRead(notificationId, userId) {
+    if (!notificationId || !userId) return null;
+    return await this.Model.NotificationModel.update(
+      { is_read: 1 },
+      {
+        where: {
+          id: notificationId,
+          user_id:userId
+        }
+      }
+    )
+  }
 }
+
 

@@ -6,6 +6,7 @@ import RoleModel from "../../dataBase/models/roles.js";
 import TicketModel from "../../dataBase/models/ticket.js";
 import DepartmentModel from "../../dataBase/models/department.js";
 import UserDevices from "../../dataBase/models/userDevice.js";
+import NotificationModel from "../../dataBase/models/notificationModel.js";
 import authorize from "../middleweare/authmiddleweare.js";
 import checkRole from "../middleweare/roleBaseMiddleweare.js";
 import {
@@ -19,7 +20,14 @@ const route = express.Router();
 const controller = new ticketController();
 const role = checkRole("Customer");
 controller.init({
-  models: { UserModel, RoleModel, TicketModel, DepartmentModel,UserDevices },
+  models: {
+    UserModel,
+    RoleModel,
+    TicketModel,
+    DepartmentModel,
+    UserDevices,
+    NotificationModel,
+  },
 });
 route.post(
   "/createTicket",
@@ -43,7 +51,7 @@ route.get(
 route.get(
   "/getTicketListByAdmin",
   authorize,
-  checkRole("Super Admin","Agent"),
+  checkRole("Super Admin", "Agent"),
   asyncHandler(controller.getAllTickets.bind(controller)),
 );
 route.post(
@@ -54,17 +62,18 @@ route.post(
 );
 route.get(
   "/adminDashBoard",
- authorize,
+  authorize,
   checkRole("Super Admin"),
   asyncHandler(controller.dashboard.bind(controller)),
 );
 route.get(
   "/getAgentsList",
   authorize,
-  checkRole("Super Admin","Agent"),
+  checkRole("Super Admin", "Agent"),
   asyncHandler(controller.getAgentsList.bind(controller)),
 );
-route.get("/agentDashBoard/:agentId",
+route.get(
+  "/agentDashBoard/:agentId",
   asyncHandler(controller.agentDashboard.bind(controller)),
 );
 route.put(
@@ -74,6 +83,11 @@ route.put(
   validateRequest(prioritySchema),
   asyncHandler(controller.updatePriority.bind(controller)),
 );
+route.get(
+  "/notifications",
+  authorize,
+  asyncHandler(controller.getMyNotifications.bind(controller)),
+);
 route.put(
   "/updateTicketStatus/:id",
   authorize,
@@ -81,5 +95,13 @@ route.put(
   validateRequest(updateStatusSchema),
   asyncHandler(controller.updateStatus.bind(controller)),
 );
-route.get("/getTicketByAgent/:id", asyncHandler(controller.getTicketByAgent.bind(controller)));
+route.get(
+  "/getTicketByAgent/:id",
+  asyncHandler(controller.getTicketByAgent.bind(controller)),
+);
+route.patch(
+  "/notifications-read/:id",
+  authorize,
+  asyncHandler(controller.markNotificationAsRead.bind(controller)),
+);
 export default route;
