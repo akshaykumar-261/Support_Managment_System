@@ -32,72 +32,72 @@ export default class TicketService {
     });
   };
 
-getTicketByIdWithCustomer = async (ticketId) => {
-  if (!ticketId) return null;
-  return await this.Model.TicketModel.findOne({
-    where: {
-      id: ticketId,
-    },
-    include: [
-      {
-        model: this.Model.UserModel,
-        as: "customer",
-        attributes: ["id", "name", "email"],
+  getTicketByIdWithCustomer = async (ticketId) => {
+    if (!ticketId) return null;
+    return await this.Model.TicketModel.findOne({
+      where: {
+        id: ticketId,
       },
-    ],
-    raw: true,
-  });
-};
+      include: [
+        {
+          model: this.Model.UserModel,
+          as: "customer",
+          attributes: ["id", "name", "email"],
+        },
+      ],
+      raw: true,
+    });
+  };
   getTicketByCustomer = async (customerId, query = {}) => {
-  if (!customerId) return null;
-  const whereCondition = {
-    customer_Id: customerId,
-  };
+    if (!customerId) return null;
+    const whereCondition = {
+      customer_Id: customerId,
+    };
 
-  if (query.search) {
-    whereCondition[Op.or] = [
-      { title: { [Op.substring]: query.search.trim() } },
-      { ticket_number: { [Op.substring]: query.search.trim() } },
-      { description: { [Op.substring]: query.search.trim() } },
-      { status: { [Op.substring]: query.search.trim() } },
-        {priority: { [Op.substring]: query.search.trim() } }, 
-    ];
-  }
-
-  // 2. Pagination Setup (Using your existing getPagination helper)
-  const { page, limit, offset } = getPagination(query.page, query.limit);
-  const result = await this.Model.TicketModel.findAndCountAll({
-    where: whereCondition,
-    order: [["id", "DESC"]],
-    limit,
-    offset,
-    raw: true,
-    attributes: {
-      exclude: [
-        "close_At",
-        "department_Id",
-        "current_Agent",
-        "customer_Id",
-        "resolve_At",
-        "createdAt",
-        "updatedAt"
-      ]
+    if (query.search) {
+      whereCondition[Op.or] = [
+        { title: { [Op.substring]: query.search.trim() } },
+        { ticket_number: { [Op.substring]: query.search.trim() } },
+        { description: { [Op.substring]: query.search.trim() } },
+        { status: { [Op.substring]: query.search.trim() } },
+        { priority: { [Op.substring]: query.search.trim() } },
+      ];
     }
-  });
 
-  // Controller ke paginationsResponse function ke liye format return karein
-  return { 
-    count: result.count, 
-    rows: result.rows, 
-    page, 
-    limit 
+    // 2. Pagination Setup (Using your existing getPagination helper)
+    const { page, limit, offset } = getPagination(query.page, query.limit);
+    const result = await this.Model.TicketModel.findAndCountAll({
+      where: whereCondition,
+      order: [["id", "DESC"]],
+      limit,
+      offset,
+      raw: true,
+      attributes: {
+        exclude: [
+          "close_At",
+          "department_Id",
+          "current_Agent",
+          "customer_Id",
+          "resolve_At",
+          "createdAt",
+          "updatedAt",
+        ],
+      },
+    });
+
+    // Controller ke paginationsResponse function ke liye format return karein
+    return {
+      count: result.count,
+      rows: result.rows,
+      page,
+      limit,
+    };
   };
-};
   getTicketByAgentId = async (agentId, query = {}) => {
     if (!agentId) return null;
     const whereCondition = {
-      current_Agent: agentId
-    }
+      current_Agent: agentId,
+    };
     if (query.search) {
       const searchKeyword = query.search.trim();
       whereCondition[Op.or] = [
@@ -109,7 +109,7 @@ getTicketByIdWithCustomer = async (ticketId) => {
       ];
     }
     const { page, limit, offset } = getPagination(query.page, query.limit);
-  const result = await this.Model.TicketModel.findAndCountAll({
+    const result = await this.Model.TicketModel.findAndCountAll({
       where: whereCondition,
       include: [
         {
@@ -118,17 +118,17 @@ getTicketByIdWithCustomer = async (ticketId) => {
           attributes: ["id", "name", "email"],
         },
       ],
-      order: [["id", "DESC"]], // Naye tickets humesha upar dikhane ke liye
+      order: [["id", "DESC"]],
       limit,
       offset,
-  });
+    });
     return {
       count: result.count,
       rows: result.rows,
       page,
       limit,
     };
-  }
+  };
   async createTicket(payload) {
     const ticket = await this.Model.TicketModel.create(payload);
     return ticket;
@@ -150,38 +150,20 @@ getTicketByIdWithCustomer = async (ticketId) => {
     if (query.priority) {
       where.priority = query.priority;
     }
-
-    // ✅ Date filter — ?date=2026-05-28 ya ?date=today
-    // if (query.date) {
-    //   const inputDate =
-    //     query.date === "today" ? new Date() : new Date(query.date);
-
-    //   // Us din ka start: 2026-05-28 00:00:00
-    //   const startOfDay = new Date(inputDate);
-    //   startOfDay.setHours(0, 0, 0, 0);
-
-    //   // Us din ka end: 2026-05-28 23:59:59
-    //   const endOfDay = new Date(inputDate);
-    //   endOfDay.setHours(23, 59, 59, 999);
-
-    //   where.createdAt = {
-    //     [Op.between]: [startOfDay, endOfDay],
-    //   };
-    // }
     if (query.search) {
-    const searchKeyword = query.search.trim();
-    where[Op.or] = [
-      { title: { [Op.substring]: searchKeyword } },
-      { ticket_number: { [Op.substring]: searchKeyword } },
-        { description: { [Op.substring]: searchKeyword} },
-      { status: { [Op.substring]: searchKeyword } },
-        {priority: { [Op.substring]:searchKeyword} }, 
-    ];
-    customerWhere[Op.or] = [
-      { name: { [Op.substring]: searchKeyword } },
-      { email: { [Op.substring]: searchKeyword } }
-    ];
-  }
+      const searchKeyword = query.search.trim();
+      where[Op.or] = [
+        { title: { [Op.substring]: searchKeyword } },
+        { ticket_number: { [Op.substring]: searchKeyword } },
+        { description: { [Op.substring]: searchKeyword } },
+        { status: { [Op.substring]: searchKeyword } },
+        { priority: { [Op.substring]: searchKeyword } },
+      ];
+      customerWhere[Op.or] = [
+        { name: { [Op.substring]: searchKeyword } },
+        { email: { [Op.substring]: searchKeyword } },
+      ];
+    }
     const { page, limit, offset } = getPagination(query.page, query.limit);
 
     const result = await this.Model.TicketModel.findAndCountAll({
@@ -202,11 +184,10 @@ getTicketByIdWithCustomer = async (ticketId) => {
       limit,
       offset,
     });
-
     return { count: result.count, rows: result.rows, page, limit };
   }
   async getAgentsList(filter = {}) {
-    const where = { is_active: true,is_verified:true, deletedAt: null };
+    const where = { is_active: true, is_verified: true, deletedAt: null };
     // allow optional department filter
     if (filter.department_Id) {
       where.department_Id = filter.department_Id;
@@ -220,7 +201,14 @@ getTicketByIdWithCustomer = async (ticketId) => {
           attributes: ["id", "name"],
         },
       ],
-      attributes: ["id", "name", "email", "department_Id", "profile_Img","is_verified"],
+      attributes: [
+        "id",
+        "name",
+        "email",
+        "department_Id",
+        "profile_Img",
+        "is_verified",
+      ],
       order: [["id", "DESC"]],
     });
   }
@@ -251,94 +239,118 @@ getTicketByIdWithCustomer = async (ticketId) => {
 
 async getUserDeviceTokens(userIds) {
   const ids = Array.isArray(userIds) ? userIds : [userIds];
-  console.log("=========================>", ids);
-  
-  // Pure objects fetch karein jisme user_id aur device_token dono hon
   const devices = await this.Model.UserDevices.findAll({
     where: {
       user_id: { [Op.in]: ids },
       is_login: true,
       device_token: { [Op.ne]: null }
     },
-    attributes: ["user_id", "device_token"], 
-    raw: true
-  });
-  
-  return devices; // .map() hata diya hai, ab ye array of objects dega
-}
-
-async getSuperAdminIds() {
-  const admins = await this.Model.UserModel.findAll({
     include: [
       {
-        model: this.Model.RoleModel,
-        where: { name: "Super Admin" },
-        attributes: []
+        model: this.Model.UserModel,
+        as: "user",
+        attributes: ["is_mobile_notification_active"]
       }
     ],
-    attributes: ["id"],
-    raw: true
+    attributes: ["user_id", "device_token", "device_type"], 
+    raw: true,
+    nest: true 
   });
-  return admins.map(a => a.id);
+  const filteredDevices = devices.filter(device => {
+    const isNotiActive = 
+      device.user?.is_mobile_notification_active ?? 
+      device["user.is_mobile_notification_active"];
+    if (isNotiActive === false || isNotiActive === 0 || isNotiActive === "0") {
+      console.log(`Notification BLOCKED for User ID: ${device.user_id} because setting is OFF.`);
+      return false; 
+    }
+    return true;
+  });
+  return filteredDevices; 
 }
-  
-  async agentDashboard(agentId) {
-  const totalTicket = await this.Model.TicketModel.count({
-    where: {
-      current_Agent: agentId,
-    },
-  });
-
-  const openTickets = await this.Model.TicketModel.count({
-    where: {
-      current_Agent: agentId,
-      status: "open",
-    },
-  });
-
-  const closeTickets = await this.Model.TicketModel.count({
-    where: {
-      current_Agent: agentId,
-      status: "closed",
-    },
-  });
-
-  const inProgressTickets = await this.Model.TicketModel.count({
-    where: {
-      current_Agent: agentId,
-      status: "in_progress",
-    },
-  });
-
-  return {
-    totalTicket,
-    openTickets,
-    closeTickets,
-    inProgressTickets,
-  };
+  async toggleMobileNotification(userId, status) {
+    if (!userId) return null;
+    return await this.Model.UserModel.update(
+      { is_mobile_notification_active: status },
+      {
+        where: {
+          id: userId,
+        },
+      },
+    );
   }
- 
+  async getSuperAdminIds() {
+    const admins = await this.Model.UserModel.findAll({
+      include: [
+        {
+          model: this.Model.RoleModel,
+          where: {id: 1},
+          attributes: [],
+        },
+      ],
+      attributes: ["id"],
+      raw: true,
+    });
+    return admins.map((a) => a.id);
+  }
+
+  async agentDashboard(agentId) {
+    const totalTicket = await this.Model.TicketModel.count({
+      where: {
+        current_Agent: agentId,
+      },
+    });
+
+    const openTickets = await this.Model.TicketModel.count({
+      where: {
+        current_Agent: agentId,
+        status: "open",
+      },
+    });
+
+    const closeTickets = await this.Model.TicketModel.count({
+      where: {
+        current_Agent: agentId,
+        status: "closed",
+      },
+    });
+
+    const inProgressTickets = await this.Model.TicketModel.count({
+      where: {
+        current_Agent: agentId,
+        status: "in_progress",
+      },
+    });
+
+    return {
+      totalTicket,
+      openTickets,
+      closeTickets,
+      inProgressTickets,
+    };
+  }
+
   async getUserNotifications(userId, query = {}) {
     if (!userId) return null;
     const { page, limit, offset } = getPagination(query.page, query.limit);
     const result = await this.Model.NotificationModel.findAndCountAll({
       where: {
-        user_id: userId
+        user_id: userId,
       },
       order: [["id", "DESC"]],
       limit,
       offset,
-      raw: true
+      raw: true,
     });
     const unreadCount = await this.Model.NotificationModel.count({
       where: {
         user_id: userId,
-        is_read: 0
-      }
-    })
+        is_read: 0,
+      },
+    });
     return {
       count: result.count,
-      unreadCount:unreadCount,
+      unreadCount: unreadCount,
       rows: result.rows,
       page,
       limit,
@@ -351,11 +363,9 @@ async getSuperAdminIds() {
       {
         where: {
           id: notificationId,
-          user_id:userId
-        }
-      }
-    )
+          user_id: userId,
+        },
+      },
+    );
   }
 }
-
-

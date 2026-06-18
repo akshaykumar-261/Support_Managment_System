@@ -5,7 +5,7 @@ import {
   authMessage,
 } from "../helper/commanMessage.js";
 import { sendResponse } from "../helper/responseHandler.js";
-import { STATUS_CODE } from "../helper/statusCode.js";
+import { STATUS_CODE, TICKET_STATUS} from "../helper/statusCode.js";
 import * as commanFunction from "../../utility/commanFunction.js";
 import { sendPushNotification } from "../helper/notificationFunction.js";
 export default class ticketController {
@@ -16,12 +16,12 @@ export default class ticketController {
   }
   async ticketCreate(req, res) {
     const ticketNo = commanFunction.generateTicketNumber();
-    if (!req.user || !(req.user.id || req.user.dataValues?.id)) {
+    if (!req.user.id) {
       return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
     }
-    const customerId = req.user.id || req.user.dataValues?.id;
-    const customerName = req.user.name || req.user.dataValues?.name || "A Customer";
-
+    const customerId = req.user.id;
+    const customerName =
+      req.user.name;
     const payload = {
       ...req.body,
       ticket_number: ticketNo,
@@ -30,22 +30,22 @@ export default class ticketController {
     const ticket = await this.service.createTicket(payload);
     try {
       const adminIds = await this.service.getSuperAdminIds();
-    
-      if (adminIds.length > 0) {
+      if (adminIds) {
         const adminDevices = await this.service.getUserDeviceTokens(adminIds);
-        if (adminDevices && adminDevices.length > 0) {
+        if (adminDevices) {
           const title = "New Ticket Created!";
           const body = `${customerName} has created a new ticket #${ticketNo}.`;
-          const dataPayload = { ticket_id: String(ticket.id), action: "new_ticket" };
-
-          adminDevices.forEach(device => {
-            // 5th parameter par device.user_id pass kar diya
+          const dataPayload = {
+            ticket_id: (ticket.id),
+            action: "new_ticket",
+          };
+          adminDevices.forEach((device) => {
             sendPushNotification(
               device.device_token,
               title,
               body,
               dataPayload,
-              device.user_id
+              device.user_id,
             );
           });
         }
@@ -78,7 +78,7 @@ export default class ticketController {
       );
     }
     await this.service.updateTicket(id, {
-      status: "closed",
+      status: TICKET_STATUS.CLOSED,
       close_At: new Date(),
     });
     return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.TICKET_CLOSE);
@@ -124,68 +124,68 @@ export default class ticketController {
     });
   }
   async assignTicket(req, res) {
-  const { id } = req.params;
-  const { agent_Id, department_Id } = req.body;
-  const ticket = await this.service.getTicketByIdWithCustomer(id);
-  
-  if (!ticket) {
-    return sendResponse(
-      res,
-      STATUS_CODE.BAD_REQUEST,
-      TICKET_MESSAGE.TICKET_NOT_FOUND,
-    );
-  }
-  
-  await this.service.updateTicket(id, {
-    current_Agent: agent_Id,
-    department_Id: department_Id,
-    status: "in_progress",
-  });
+    const { id } = req.params;
+    const { agent_Id, department_Id } = req.body;
+    const ticket = await this.service.getTicketByIdWithCustomer(id);
 
-  try {
-    const dataPayload = { ticket_id: String(id), action: "ticket_assigned" };
-    const customerId = ticket.customer_Id || ticket["customer_Id"];
-    if (customerId) {
-      const customerDevices = await this.service.getUserDeviceTokens(customerId);
-      if (customerDevices && customerDevices.length > 0) {
-        const customerTitle = "Ticket Assigned";
-        const customerBody = `Your ticket #${ticket.ticket_number} has been assigned to an agent.`;
-      
-        customerDevices.forEach(device => {
-          sendPushNotification(
-            device.device_token,
-            customerTitle,
-            customerBody,
-            dataPayload,
-            device.user_id
-          );
-        });
-      }
-    }
-    if (agent_Id) {
-      const agentDevices = await this.service.getUserDeviceTokens(agent_Id);
-      if (agentDevices && agentDevices.length > 0) {
-        const agentTitle = "New Ticket Assigned To You!";
-        const agentBody = `Ticket #${ticket.ticket_number} ("${ticket.title || 'No Title'}") has been assigned to you.`;
-
-        agentDevices.forEach(device => {
-          sendPushNotification(
-            device.device_token,
-            agentTitle,
-            agentBody,
-            dataPayload,
-            device.user_id 
-          );
-        });
-      }
+    if (!ticket) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        TICKET_MESSAGE.TICKET_NOT_FOUND,
+      );
     }
 
-  } catch (err) {
-    console.error("Error in sending assignment notifications:", err);
+    await this.service.updateTicket(id, {
+      current_Agent: agent_Id,
+      department_Id: department_Id,
+      status: TICKET_STATUS.IN_PROGRESS,
+    });
+
+    try {
+      const dataPayload = { ticket_id: String(id), action: "ticket_assigned" };
+      const customerId = ticket.customer_Id || ticket["customer_Id"];
+      if (customerId) {
+        const customerDevices =
+          await this.service.getUserDeviceTokens(customerId);
+        if (customerDevices && customerDevices.length > 0) {
+          const customerTitle = "Ticket Assigned";
+          const customerBody = `Your ticket #${ticket.ticket_number} has been assigned to an agent.`;
+
+          customerDevices.forEach((device) => {
+            sendPushNotification(
+              device.device_token,
+              customerTitle,
+              customerBody,
+              dataPayload,
+              device.user_id,
+            );
+          });
+        }
+      }
+      if (agent_Id) {
+        const agentDevices = await this.service.getUserDeviceTokens(agent_Id);
+        if (agentDevices && agentDevices.length > 0) {
+          const agentTitle = "New Ticket Assigned To You!";
+          const agentBody = `Ticket #${ticket.ticket_number} ("${ticket.title || "No Title"}") has been assigned to you.`;
+
+          agentDevices.forEach((device) => {
+            sendPushNotification(
+              device.device_token,
+              agentTitle,
+              agentBody,
+              dataPayload,
+              device.user_id,
+            );
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error in sending assignment notifications:", err);
+    }
+
+    return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.TICKET_ASSIGN);
   }
-  
-  return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.TICKET_ASSIGN);
-}
   async getAgentsList(req, res) {
     const agents = await this.service.getAgentsList(req.query || {});
     if (!agents || agents.length === 0) {
@@ -233,7 +233,14 @@ export default class ticketController {
         res,
         STATUS_CODE.SUCCESS,
         TICKET_MESSAGE.TICKET_NOT_FOUND,
-        { tickets: commanFunction.paginationsResponse({ count: 0, rows: [], page: 1, limit: 10 }) }
+        {
+          tickets: commanFunction.paginationsResponse({
+            count: 0,
+            rows: [],
+            page: 1,
+            limit: 10,
+          }),
+        },
       );
     }
 
@@ -260,7 +267,7 @@ export default class ticketController {
       return sendResponse(
         res,
         STATUS_CODE.BAD_REQUEST,
-        TICKET_MESSAGE.AGENT_ID
+        TICKET_MESSAGE.AGENT_ID,
       );
     }
 
@@ -269,8 +276,8 @@ export default class ticketController {
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
-    TICKET_MESSAGE.AGENT_DASHBOARD,
-      { dashboard }
+      TICKET_MESSAGE.AGENT_DASHBOARD,
+      { dashboard },
     );
   }
 
@@ -295,7 +302,7 @@ export default class ticketController {
             page: 1,
             limit: 10,
           }),
-        }
+        },
       );
     }
 
@@ -310,11 +317,11 @@ export default class ticketController {
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
-       TICKET_MESSAGE.NOTIFICATION_FETCH,
+      TICKET_MESSAGE.NOTIFICATION_FETCH,
       {
         unreadCount: result.unreadCount,
         notifications: formattedResponse,
-      }
+      },
     );
   }
 
@@ -325,7 +332,11 @@ export default class ticketController {
     }
     const userId = req.user.id || req.user.dataValues?.id;
     if (!id) {
-      return sendResponse(res, STATUS_CODE.BAD_REQUEST,TICKET_MESSAGE.NOTIFICATION_ID);
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        TICKET_MESSAGE.NOTIFICATION_ID,
+      );
     }
     const result = await this.service.markNotificationAsRead(id, userId);
     const updatedRows = Array.isArray(result) ? result[0] : result;
@@ -333,54 +344,61 @@ export default class ticketController {
       return sendResponse(
         res,
         STATUS_CODE.BAD_REQUEST,
-        TICKET_MESSAGE.NOTIFICATION_NOT_FOUND
+        TICKET_MESSAGE.NOTIFICATION_NOT_FOUND,
       );
     }
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
-      TICKET_MESSAGE.NOTIFICATION_SUCCESS
+      TICKET_MESSAGE.NOTIFICATION_SUCCESS,
     );
   }
 
-
-
-
-
-
-
-
-
-
-  
+  async toggleMobileNotification(req, res) {
+    let { status } = req.body;
+    if (!req.user || !(req.user.id || req.user.dataValues?.id)) {
+      return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
+    }
+    const userId = req.user.id || req.user.dataValues?.id;
+    if (status === undefined || status === null || status === "") {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+         TICKET_MESSAGE.STATUS_REQUIRED
+      );
+    }
+    if (
+      status === "true" ||
+      status === 1 ||
+      status === "1" ||
+      status === true
+    ) {
+      status = true;
+    } else if (
+      status === "false" ||
+      status === 0 ||
+      status === "0" ||
+      status === false
+    ) {
+      status = false;
+    } else {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        TICKET_MESSAGE.INVALID_STATUS,
+      );
+    }
+    const result = await this.service.toggleMobileNotification(userId, status);
+    if (!result) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        TICKET_MESSAGE.NO_USER_FOUND,
+      );
+    }
+    const responseMessage = status
+      ? TICKET_MESSAGE.NOTIFICATION_ENABLED
+      : TICKET_MESSAGE.NOTIFICATION_DISABLED;
+    return sendResponse(res, STATUS_CODE.SUCCESS, responseMessage);
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

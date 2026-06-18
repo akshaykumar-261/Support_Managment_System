@@ -188,7 +188,6 @@ export default class userController {
           device_id: device_id,
         },
       });
-      console.log("==========================>", existingDevice);
       if (existingDevice) {
         const abc = await existingDevice.update({
           device_token,
@@ -197,7 +196,6 @@ export default class userController {
           login_time: new Date(),
           logout_time: null,
         });
-        console.log("=========================>", abc);
       } else {
         const a = await this.Models.UserDevices.create({
           user_id: userInDb.id,
@@ -207,7 +205,6 @@ export default class userController {
           is_login: true,
           login_time: new Date(),
         });
-        console.log("=====================>", a);
       }
     }
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGIN_SUCCESS, {
@@ -283,12 +280,17 @@ export default class userController {
           userMessage.USER_NOT_FOUND,
         );
       }
+      const responseData = {
+      ...user.toJSON(),
+      appIcon: "default",
+    };
 
       return sendResponse(
         res,
         STATUS_CODE.SUCCESS,
         userMessage.FETCH_PROFILE,
-        user,
+        responseData,
+        //user,
       );
     } catch (error) {
       return sendResponse(res, STATUS_CODE.SERVER_ERROR, error.message);
@@ -386,7 +388,6 @@ export default class userController {
   async resetPassword(req, res) {
     const { email, newPassword } = req.body;
     const user = await this.service.getByEmail(email);
-    console.log("User fetched for password reset =========>:", user);
     if (!user) {
       return sendResponse(
         res,
@@ -424,7 +425,7 @@ export default class userController {
         return sendResponse(
           res,
           STATUS_CODE.BAD_REQUEST,
-          "Old password is incorrect",
+         userMessage.INCORRECT_PASSWORD,
         );
       }
 
@@ -437,22 +438,19 @@ export default class userController {
       return sendResponse(
         res,
         STATUS_CODE.SUCCESS,
-        "Password changed successfully",
+        userMessage.CHANGE_PASSWORD,
       );
     } catch (error) {
       return sendResponse(res, STATUS_CODE.SERVER_ERROR, error.message);
     }
   }
   async logout(req, res) {
-    try {
       const user = req.user;
       const { device_id } = req.body;
       if (!user || !user.id) {
         return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
       }
-
       await this.service.clearRefreshToken(user.id);
-
       await this.Models.UserDevices.update(
         {
           is_login: false,
@@ -465,10 +463,6 @@ export default class userController {
           },
         },
       );
-
       return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGOUT_SUCCESS);
-    } catch (error) {
-      return sendResponse(res, STATUS_CODE.SERVER_ERROR, error.message);
-    }
   }
 }

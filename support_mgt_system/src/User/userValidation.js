@@ -102,11 +102,8 @@ export const userUpdateSchema = Joi.object({
     "string.max": "Address must not exceed 200 characters",
     "any.required": "Address is required",
     "string.empty": "Address cannot be empty",
-  }),
-    address: Joi.string().max(200).optional().messages({
-    "string.max": "Address must not exceed 200 characters",
-    "string.empty": "Address cannot be empty",
-  }),
+   }),
+     profile_Img: Joi.any().optional(),
 });
 export const forgotPasswordSchema = Joi.object({
   email: Joi.string().email().required().messages({

@@ -104,4 +104,9 @@ route.patch(
   authorize,
   asyncHandler(controller.markNotificationAsRead.bind(controller)),
 );
+route.post(
+  "/toggle-mobile-notification",
+  authorize,
+  asyncHandler(controller.toggleMobileNotification.bind(controller)),
+);
 export default route;

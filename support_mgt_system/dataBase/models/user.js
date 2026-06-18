@@ -69,7 +69,11 @@ const UserModel = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
-
+    is_mobile_notification_active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
     deletedAt: {
       type: DataTypes.DATE,
       defaultValue: null,

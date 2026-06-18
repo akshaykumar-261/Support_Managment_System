@@ -5,3 +5,9 @@ export const STATUS_CODE = {
   NOT_FOUND: 404,
   SERVER_ERROR: 500,
 };
+
+export const TICKET_STATUS = {
+  OPEN: "open",
+  IN_PROGRESS: "in-progress",
+  CLOSED: "close",
+};

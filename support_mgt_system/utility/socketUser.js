@@ -7,7 +7,6 @@ import { sendPushNotification } from "../src/helper/notificationFunction.js";
 import TicketMessageModel from "../dataBase/models/ticketMessage.js";
 
 const socketHandler = (io) => {
-  // AUTHENTICATION MIDDLEWARE
   io.use(async (socket, next) => {
     try {
       const authHeader = socket.handshake.headers.token;
@@ -21,9 +20,7 @@ const socketHandler = (io) => {
       const user = await UserModel.findOne({
         where: { id: decoded.id, is_active: 1 },
       });
-
       if (!user) return next(new Error("User Not Found"));
-
       socket.user = user;
       next();
     } catch (error) {
@@ -68,7 +65,6 @@ const socketHandler = (io) => {
       }
     });
 
-    // SEND MESSAGE
     socket.on("send_message", async (data) => {
       try {
         console.log("send_message payload:", data);
@@ -93,18 +89,15 @@ const socketHandler = (io) => {
           return;
         }
 
-        // DB SAVE
         const newMessage = await TicketMessageModel.create({
           ticket_Id: ticketId,
           sender_Id: socket.user.id,
           message: messageText,
         });
-
         const roomName = `ticket_${ticketId}`;
         const room = io.sockets.adapter.rooms.get(roomName);
         const roomSize = room ? room.size : 0;
         console.log(`Emitting to room ${roomName}, members: ${roomSize}`);
-
         io.to(roomName).emit("receive_message", {
           from: socket.user.name,
           sender_Id: newMessage.sender_Id,
@@ -156,8 +149,16 @@ const socketHandler = (io) => {
                   is_login: true,
                   device_token: { [Op.ne]: null },
                 },
-                attributes: ["device_token"],
+                include: [
+                  {
+                    model: UserModel,
+                    as: "user",
+                    attributes: ["is_mobile_notification_active"],
+                  },
+                ],
+                attributes: ["user_id", "device_token"],
                 raw: true,
+                nest: true,
               });
 
               if (receiverTokens && receiverTokens.length > 0) {
@@ -168,15 +169,33 @@ const socketHandler = (io) => {
                     : messageText;
 
                 const dataPayload = {
-                  screen: "ticketdiscussionscreen", // frontend  read this
+                  screen: "ticketdiscussionscreen", 
                   ticket_id: String(ticketId),
-                 ticket_title: ticket ? String(ticket.title) : "Support_Mgt_Ticket",
+                  ticket_title: ticket
+                    ? String(ticket.title)
+                    : "Support_Mgt_Ticket",
                   action: "chat_message",
                 };
 
                 receiverTokens.forEach((device) => {
                   console.log(
                     `Sending push notification to token: ${device.device_token}`,
+                  );
+                  const isNotiActive =
+                    device.user?.is_mobile_notification_active ??
+                    device["user.is_mobile_notification_active"];
+                  if (
+                    isNotiActive === false ||
+                    isNotiActive === 0 ||
+                    isNotiActive === "0"
+                  ) {
+                    console.log(
+                      `[Socket]  Push Notification BLOCKED for User ID: ${device.user_id} because setting is OFF.`,
+                    );
+                    return; // Is loop iteration se bahar (Agle device par jao)
+                  }
+                  console.log(
+                    `[Socket] Sending push notification to token: ${device.device_token} (User ID: ${device.user_id})`,
                   );
                   sendPushNotification(
                     device.device_token,
@@ -219,42 +238,3 @@ const socketHandler = (io) => {
 };
 
 export default socketHandler;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -32,6 +32,8 @@ export const userMessage = {
   INVALID_TOKEN: "token is not valid",
   NEW_TOKEN: "New access token generated",
   FETCH_PROFILE: "User profile fetched successfully",
+  INCORRECT_PASSWORD: "Incorrect old password",
+  CHANGE_PASSWORD:"Password changed successfully"
 };
 export const authMessage = {
   USER_NOT_FOUND: "this user not found or inactive",
@@ -65,7 +67,12 @@ export const TICKET_MESSAGE = {
   NOTIFICATION_SUCCESS: "Notification marked as read successfully",
   NOTIFICATION_FETCH: "Notifications fetched successfully",
   AGENT_ID: "Agent Id is required",
-  AGENT_DASHBOARD:  "Agent Dashboard Fetched Successfully"
+  AGENT_DASHBOARD: "Agent Dashboard Fetched Successfully",
+  INVALID_STATUS: "Invalid status value. Use true or false.",
+  NO_USER_FOUND: "User not found or update failed",
+  NOTIFICATION_ENABLED:"Mobile notifications enabled successfully",
+  NOTIFICATION_DISABLED: "Mobile notifications disabled successfully",
+  STATUS_REQUIRED: "Status parameter is required (true/false)",
 }
 export const AGENT_MESSAGE = {
   AGENTS_LIST_FETCHED: "Agents list fetched successfully",
