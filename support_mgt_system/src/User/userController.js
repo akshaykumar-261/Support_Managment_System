@@ -10,6 +10,8 @@ import { ROLE } from "../helper/roleBase.js";
 import { sendForgotPasswordOtp } from "../../utility/sendForgotPasswordOtp.js";
 import { sendRegistrationOtp } from "../../utility/sendRegistrationOtp.js";
 import { sendAgentCredentials } from "../../utility/sendAgentCredentials.js";
+import { getFirebaseAdmin } from "../helper/fireBaseAdmin.js";
+import { OAuth2Client } from "google-auth-library";
 export default class userController {
   async init(db) {
     this.service = new userService();
@@ -110,7 +112,15 @@ export default class userController {
     );
   }
   async getUserList(req, res) {
-    const { page = 1, limit = 10, role, name, email, is_active,search} = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      role,
+      name,
+      email,
+      is_active,
+      search,
+    } = req.query;
     const pagignation = commanFunction.getPagination(page, limit);
     const users = await this.service.getUserList({
       offset: pagignation.offset,
@@ -281,9 +291,9 @@ export default class userController {
         );
       }
       const responseData = {
-      ...user.toJSON(),
-      appIcon: "default",
-    };
+        ...user.toJSON(),
+        appIcon: "default",
+      };
 
       return sendResponse(
         res,
@@ -425,7 +435,7 @@ export default class userController {
         return sendResponse(
           res,
           STATUS_CODE.BAD_REQUEST,
-         userMessage.INCORRECT_PASSWORD,
+          userMessage.INCORRECT_PASSWORD,
         );
       }
 
@@ -445,24 +455,123 @@ export default class userController {
     }
   }
   async logout(req, res) {
-      const user = req.user;
-      const { device_id } = req.body;
-      if (!user || !user.id) {
-        return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
-      }
-      await this.service.clearRefreshToken(user.id);
-      await this.Models.UserDevices.update(
-        {
-          is_login: false,
-          logout_time: new Date(),
+    const user = req.user;
+    const { device_id } = req.body;
+    if (!user || !user.id) {
+      return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
+    }
+    await this.service.clearRefreshToken(user.id);
+    await this.Models.UserDevices.update(
+      {
+        is_login: false,
+        logout_time: new Date(),
+      },
+      {
+        where: {
+          user_id: user.id,
+          device_id,
         },
-        {
+      },
+    );
+    return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGOUT_SUCCESS);
+  }
+  async socialLogin(req, res) {
+      const { idToken, provider, device_token, device_type, device_id } =
+        req.body;
+      if (!idToken || !provider) {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+         userMessage.REQUIRED
+        );
+      }
+      const upperCaseProvider = provider.toUpperCase();
+      let email, name, socialId;
+      if (upperCaseProvider === "GOOGLE") {
+        const targetClientId =
+          "363381000371-nhdehak23iguo6fnc9avu1mfrfuq03lh.apps.googleusercontent.com";
+        const client = new OAuth2Client(targetClientId);
+        const ticket = await client.verifyIdToken({
+          idToken: idToken,
+          audience: targetClientId,
+        });
+        const payload = ticket.getPayload();
+        email = payload.email;
+        name = payload.name || payload.email.split("@")[0];
+        socialId = payload.sub; 
+      } else {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+          `Provider [${provider}] is not supported yet.`,
+        );
+      }
+      if (!socialId || !email) {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+          userMessage.SOCIAL_AUTH_FAIL,
+        );
+      }
+      const userInDb = await this.service.findCreateSocialUser(
+        name,
+        email,
+        upperCaseProvider,
+        socialId,
+      );
+      if (!userInDb.is_active) {
+        return sendResponse(
+          res,
+          STATUS_CODE.BAD_REQUEST,
+        userMessage.DEACTIVATE,
+        );
+      }
+      const accessToken = commanFunction.generateAccessToken(userInDb);
+      const refreshToken = commanFunction.generateRefreshToken(userInDb);
+      await this.service.updateUser(userInDb.id, { refreshToken });
+      if (device_token && device_id) {
+        const existingDevice = await this.Models.UserDevices.findOne({
           where: {
-            user_id: user.id,
-            device_id,
+            user_id: userInDb.id,
+            device_id: device_id,
           },
+        });
+
+        if (existingDevice) {
+          await existingDevice.update({
+            device_token,
+            device_type: device_type,
+            is_login: true,
+            login_time: new Date(),
+            logout_time: null,
+          });
+        } else {
+          await this.Models.UserDevices.create({
+            user_id: userInDb.id,
+            device_token,
+            device_type: device_type,
+            device_id,
+            is_login: true,
+            login_time: new Date(),
+          });
+        }
+      }
+      const userResponse = userInDb.toJSON ? userInDb.toJSON() : userInDb;
+      delete userResponse.password;
+      delete userResponse.refreshToken;
+      delete userResponse.otp;
+      delete userResponse.otp_expire;
+      delete userResponse.otp_type;
+      delete userResponse.department_Id;
+      return sendResponse(
+        res,
+        STATUS_CODE.SUCCESS,
+         userMessage.SOCIAL_LOGIN_SUCEES,
+        {
+          accessToken,
+          refreshToken,
+          user: userResponse,
         },
       );
-      return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGOUT_SUCCESS);
   }
 }

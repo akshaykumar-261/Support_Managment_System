@@ -33,7 +33,11 @@ export const userMessage = {
   NEW_TOKEN: "New access token generated",
   FETCH_PROFILE: "User profile fetched successfully",
   INCORRECT_PASSWORD: "Incorrect old password",
-  CHANGE_PASSWORD:"Password changed successfully"
+  CHANGE_PASSWORD: "Password changed successfully",
+  REQUIRED: "idToken and provider are required.",
+  SOCIAL_AUTH_FAIL: "Social authentication failed. Email or Social ID missing.",
+  DEACTIVATE: "Your account has been deactivated by admin.",
+  SOCIAL_LOGIN_SUCEES:"Logged in successfully via social authentication.",
 };
 export const authMessage = {
   USER_NOT_FOUND: "this user not found or inactive",

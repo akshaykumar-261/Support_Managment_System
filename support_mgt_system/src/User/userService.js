@@ -189,5 +189,50 @@ return {
       deletedAt: null,
     },
   });
-}
+  }
+  async findCreateSocialUser(name, email,provider, socialId) {
+    // check wether social login user's provider aur socialId exists
+    let user = await this.Model.Users.findOne({
+      where: {
+        social_id: socialId,
+        provider: provider,
+        deletedAt: null
+      }
+    })
+    //if social user not found then check wether this email's any local user registered
+    if (!user && email) {
+      user = await this.Model.Users.findOne({
+        where: {
+          email: email.toLowerCase().trim(),
+          deletedAt:null
+        }
+      })
+    }
+   if (user) {
+      await this.Model.Users.update(
+        {
+          social_id: socialId,
+          provider: provider,
+          is_verified: true,
+        },
+        { where: { id: user.id } }
+      );
+      user = await this.Model.Users.findByPk(user.id);
+    }
+    if (!user) {
+    const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const newUser = await this.Model.Users.create({
+      name: name,
+      email:   email.toLowerCase().trim(),
+      password: randomPassword,
+      is_verified: true, 
+      role_Id: 3,
+      provider: provider,
+      social_id: socialId,
+      is_active: true
+    });
+    user = newUser;
+    }
+    return user;
+  }
 }
