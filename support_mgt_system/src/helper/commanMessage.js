@@ -37,7 +37,8 @@ export const userMessage = {
   REQUIRED: "idToken and provider are required.",
   SOCIAL_AUTH_FAIL: "Social authentication failed. Email or Social ID missing.",
   DEACTIVATE: "Your account has been deactivated by admin.",
-  SOCIAL_LOGIN_SUCEES:"Logged in successfully via social authentication.",
+  SOCIAL_LOGIN_SUCEES: "Logged in successfully via social authentication.",
+  PROVIDER_NOT_SUPPORT:"`Provider is not supported yet."
 };
 export const authMessage = {
   USER_NOT_FOUND: "this user not found or inactive",

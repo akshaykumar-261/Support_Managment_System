@@ -111,5 +111,16 @@ router.post(
   validateRequest(createAgentSchema),
   asyncHandler(controller.agentCreate.bind(controller)),
 );
-router.post("/social-login", asyncHandler(controller.socialLogin.bind(controller)));
+router.post(
+  "/social-login",
+  asyncHandler(controller.socialLogin.bind(controller)),
+);
+router.post(
+  "/otp-mobile",
+  asyncHandler(controller.sendMobileOtp.bind(controller)),
+);
+router.post(
+  "/verify-Mobotp",
+  asyncHandler(controller.verifyMobileOtp.bind(controller)),
+);
 export default router;

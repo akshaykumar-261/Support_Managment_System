@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import fs from "fs";
 import jwt from "jsonwebtoken";
-// this function will generate a secure OTP of specified length (default is 6)
+import { title } from "process";
 export const generateSecureOtp = (length = 6) => {
   const digit = "0123456789";
   let otp = "";
@@ -51,26 +51,26 @@ export const generateRefreshToken = (user) => {
       expiresIn: "180d",
     },
   );
+};
+export const getPagination = (page = 1, limit = 10) => {
+  page = Number(page);
+  limit = Number(limit);
+  if (page < 1) page = 1;
+  if (limit < 1) limit = 5;
+  const offset = (page - 1) * limit;
+  return {
+    page,
+    limit,
+    offset,
   };
-  export const getPagination = (page = 1, limit = 10) => {
-    page = Number(page);
-    limit = Number(limit);
-    if (page < 1) page = 1;
-    if (limit < 1) limit = 5;
-    const offset = (page - 1) * limit;
-    return {
-      page,
-      limit,
-      offset,
-    };
+};
+export const paginationsResponse = (result) => {
+  const { count = 0, rows = [], page = 1, limit = 10 } = result || {};
+  return {
+    totalRecords: count,
+    totalPage: limit > 0 ? Math.ceil(count / limit) : 1,
+    currentPage: page,
+    perPage: limit,
+    data: rows,
   };
-  export const paginationsResponse = ({ count, rows, page, limit }) => {
-    return {
-      totalRecords: count,
-      totalPage: Math.ceil(count / limit),
-      currentPage: page,
-      perPage: limit,
-      data: rows,
-    };
-  };
-
+};

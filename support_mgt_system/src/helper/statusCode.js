@@ -16,3 +16,8 @@ export const TICKET_STATUS = {
   IN_PROGRESS: "in-progress",
   CLOSED: "close",
 };
+
+export const OTP_TYPE = {
+  VERIFY_EMAIL: "EMAIL_VERIFICATION",
+  FORGOT_PASSWORD:"FORGOT_PASSWORD"
+}

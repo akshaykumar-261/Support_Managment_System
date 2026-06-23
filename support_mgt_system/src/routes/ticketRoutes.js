@@ -45,7 +45,7 @@ route.post(
 route.get(
   "/getTicketByCustomer/:id",
   authorize,
-  role,
+  //role,
   asyncHandler(controller.getTicketByCustomer.bind(controller)),
 );
 route.get(

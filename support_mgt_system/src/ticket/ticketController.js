@@ -5,7 +5,7 @@ import {
   authMessage,
 } from "../helper/commanMessage.js";
 import { sendResponse } from "../helper/responseHandler.js";
-import { STATUS_CODE, TICKET_STATUS} from "../helper/statusCode.js";
+import { STATUS_CODE, TICKET_STATUS } from "../helper/statusCode.js";
 import * as commanFunction from "../../utility/commanFunction.js";
 import { sendPushNotification } from "../helper/notificationFunction.js";
 export default class ticketController {
@@ -16,12 +16,8 @@ export default class ticketController {
   }
   async ticketCreate(req, res) {
     const ticketNo = commanFunction.generateTicketNumber();
-    if (!req.user.id) {
-      return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
-    }
     const customerId = req.user.id;
-    const customerName =
-      req.user.name;
+    const customerName = req.user.name;
     const payload = {
       ...req.body,
       ticket_number: ticketNo,
@@ -30,26 +26,24 @@ export default class ticketController {
     const ticket = await this.service.createTicket(payload);
     try {
       const adminIds = await this.service.getSuperAdminIds();
-      if (adminIds) {
-        const adminDevices = await this.service.getUserDeviceTokens(adminIds);
-        if (adminDevices) {
-          const title = "New Ticket Created!";
-          const body = `${customerName} has created a new ticket #${ticketNo}.`;
-          const dataPayload = {
-            ticket_id: (ticket.id),
-            action: "new_ticket",
-          };
-          adminDevices.forEach((device) => {
-            sendPushNotification(
-              device.device_token,
-              title,
-              body,
-              dataPayload,
-              device.user_id,
-            );
-          });
-        }
-      }
+      const adminDevices = await this.service.getUserDeviceTokens(adminIds);
+      const title = "New Ticket Created!";
+      const body = `${customerName} has created a new ticket #${ticketNo}.`;
+      const dataPayload = {
+        ticket_id: ticket.id,
+        action: "new_ticket",
+      };
+      adminDevices.forEach((device) => {
+        console.log(`Sending notification to User: ${device.user_id} | Token: ${devicedevice_token}`,
+        );
+        sendPushNotification(
+          device.device_token,
+          title,
+          body,
+          dataPayload,
+          device.user_id,
+        );
+      });
     } catch (err) {
       console.error("Error in sending admin ticket notification:", err);
     }
@@ -86,48 +80,32 @@ export default class ticketController {
   async getTicketByCustomer(req, res) {
     const { id } = req.params;
     const result = await this.service.getTicketByCustomer(id, req.query);
-
-    if (!result || result.rows.length === 0) {
+    if (!result) {
       return sendResponse(
         res,
         STATUS_CODE.BAD_REQUEST,
         TICKET_MESSAGE.TICKET_NOT_FOUND,
       );
     }
-    const formattedResponse = commanFunction.paginationsResponse({
-      count: result.count,
-      rows: result.rows,
-      page: result.page,
-      limit: result.limit,
-    });
-
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
       TICKET_MESSAGE.TICKET_FETCHED,
       {
-        tickets: formattedResponse,
+        tickets: result,
       },
     );
   }
   async getAllTickets(req, res) {
     const result = await this.service.getAllTickets(req.query);
-    // result: { count, rows, page, limit }
-    const formatted = commanFunction.paginationsResponse({
-      count: result.count,
-      rows: result.rows,
-      page: result.page,
-      limit: result.limit,
-    });
     return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.ALL_TICKET, {
-      tickets: formatted,
+      tickets: result,
     });
   }
   async assignTicket(req, res) {
     const { id } = req.params;
     const { agent_Id, department_Id } = req.body;
     const ticket = await this.service.getTicketByIdWithCustomer(id);
-
     if (!ticket) {
       return sendResponse(
         res,
@@ -135,13 +113,11 @@ export default class ticketController {
         TICKET_MESSAGE.TICKET_NOT_FOUND,
       );
     }
-
     await this.service.updateTicket(id, {
       current_Agent: agent_Id,
       department_Id: department_Id,
       status: TICKET_STATUS.IN_PROGRESS,
     });
-
     try {
       const dataPayload = { ticket_id: String(id), action: "ticket_assigned" };
       const customerId = ticket.customer_Id || ticket["customer_Id"];
@@ -183,12 +159,11 @@ export default class ticketController {
     } catch (err) {
       console.error("Error in sending assignment notifications:", err);
     }
-
     return sendResponse(res, STATUS_CODE.SUCCESS, TICKET_MESSAGE.TICKET_ASSIGN);
   }
   async getAgentsList(req, res) {
     const agents = await this.service.getAgentsList(req.query || {});
-    if (!agents || agents.length === 0) {
+    if (!agents) {
       return sendResponse(
         res,
         STATUS_CODE.SUCCESS,
@@ -228,41 +203,27 @@ export default class ticketController {
   async getTicketByAgent(req, res) {
     const { id } = req.params;
     const result = await this.service.getTicketByAgentId(id, req.query);
-    if (!result || !result.rows || result.rows.length === 0) {
+    if (!result) {
       return sendResponse(
         res,
         STATUS_CODE.SUCCESS,
         TICKET_MESSAGE.TICKET_NOT_FOUND,
         {
-          tickets: commanFunction.paginationsResponse({
-            count: 0,
-            rows: [],
-            page: 1,
-            limit: 10,
-          }),
+          tickets: result
         },
       );
     }
-
-    const formattedResponse = commanFunction.paginationsResponse({
-      count: result.count,
-      rows: result.rows,
-      page: result.page,
-      limit: result.limit,
-    });
-
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
       TICKET_MESSAGE.TICKET_FETCHED,
       {
-        tickets: formattedResponse,
+        tickets: result,
       },
     );
   }
   async agentDashboard(req, res) {
     const { agentId } = req.params;
-
     if (!agentId) {
       return sendResponse(
         res,
@@ -270,9 +231,7 @@ export default class ticketController {
         TICKET_MESSAGE.AGENT_ID,
       );
     }
-
     const dashboard = await this.service.agentDashboard(agentId);
-
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
@@ -282,55 +241,39 @@ export default class ticketController {
   }
 
   async getMyNotifications(req, res) {
-    if (!req.user || !(req.user.id || req.user.dataValues?.id)) {
+    if (!req.user.id) {
       return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
     }
-    const userId = req.user.id || req.user.dataValues?.id;
-    // Service se notifications fetch karna
+    const userId = req.user.id;
     const result = await this.service.getUserNotifications(userId, req.query);
-
-    if (!result || !result.rows || result.rows.length === 0) {
+    if (!result) {
       return sendResponse(
         res,
         STATUS_CODE.SUCCESS,
         TICKET_MESSAGE.NOTIFICATION_NOT_FOUND,
         {
           unreadCount: 0,
-          notifications: commanFunction.paginationsResponse({
-            count: 0,
-            rows: [],
-            page: 1,
-            limit: 10,
-          }),
+          result,
         },
       );
     }
-
-    // Standard response pagination format mein transform karna
-    const formattedResponse = commanFunction.paginationsResponse({
-      count: result.count,
-      rows: result.rows,
-      page: result.page,
-      limit: result.limit,
-    });
-
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
       TICKET_MESSAGE.NOTIFICATION_FETCH,
       {
         unreadCount: result.unreadCount,
-        notifications: formattedResponse,
+        unreadCount: result,
       },
     );
   }
 
   async markNotificationAsRead(req, res) {
     const { id } = req.params;
-    if (!req.user || !(req.user.id || req.user.dataValues?.id)) {
+    if (!req.user.id) {
       return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
     }
-    const userId = req.user.id || req.user.dataValues?.id;
+    const userId = req.user.id;
     if (!id) {
       return sendResponse(
         res,
@@ -356,15 +299,15 @@ export default class ticketController {
 
   async toggleMobileNotification(req, res) {
     let { status } = req.body;
-    if (!req.user || !(req.user.id || req.user.dataValues?.id)) {
+    if (req.user.id) {
       return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
     }
-    const userId = req.user.id || req.user.dataValues?.id;
+    const userId = req.user.id;
     if (status === undefined || status === null || status === "") {
       return sendResponse(
         res,
         STATUS_CODE.BAD_REQUEST,
-         TICKET_MESSAGE.STATUS_REQUIRED
+        TICKET_MESSAGE.STATUS_REQUIRED,
       );
     }
     if (

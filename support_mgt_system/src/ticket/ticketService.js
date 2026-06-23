@@ -237,37 +237,43 @@ export default class TicketService {
     };
   }
 
-async getUserDeviceTokens(userIds) {
-  const ids = Array.isArray(userIds) ? userIds : [userIds];
-  const devices = await this.Model.UserDevices.findAll({
-    where: {
-      user_id: { [Op.in]: ids },
-      is_login: true,
-      device_token: { [Op.ne]: null }
-    },
-    include: [
-      {
-        model: this.Model.UserModel,
-        as: "user",
-        attributes: ["is_mobile_notification_active"]
+    async getUserDeviceTokens(userIds) {
+    const ids = Array.isArray(userIds) ? userIds : [userIds];
+    const devices = await this.Model.UserDevices.findAll({
+      where: {
+        user_id: { [Op.in]: ids },
+        is_login: true,
+        device_token: { [Op.ne]: null },
+      },
+      include: [
+        {
+          model: this.Model.UserModel,
+          as: "user",
+          attributes: ["is_mobile_notification_active"],
+        },
+      ],
+      attributes: ["user_id", "device_token", "device_type"],
+      raw: true,
+      nest: true,
+    });
+    const filteredDevices = devices.filter((device) => {
+      const isNotiActive =
+        device.user?.is_mobile_notification_active ??
+        device["user.is_mobile_notification_active"];
+      if (
+        isNotiActive === false ||
+        isNotiActive === 0 ||
+        isNotiActive === "0"
+      ) {
+        console.log(
+          `Notification BLOCKED for User ID: ${device.user_id} because setting is OFF.`,
+        );
+        return false;
       }
-    ],
-    attributes: ["user_id", "device_token", "device_type"], 
-    raw: true,
-    nest: true 
-  });
-  const filteredDevices = devices.filter(device => {
-    const isNotiActive = 
-      device.user?.is_mobile_notification_active ?? 
-      device["user.is_mobile_notification_active"];
-    if (isNotiActive === false || isNotiActive === 0 || isNotiActive === "0") {
-      console.log(`Notification BLOCKED for User ID: ${device.user_id} because setting is OFF.`);
-      return false; 
-    }
-    return true;
-  });
-  return filteredDevices; 
-}
+      return true;
+    });
+    return filteredDevices;
+  }
   async toggleMobileNotification(userId, status) {
     if (!userId) return null;
     return await this.Model.UserModel.update(
@@ -284,7 +290,7 @@ async getUserDeviceTokens(userIds) {
       include: [
         {
           model: this.Model.RoleModel,
-          where: {id: 1},
+          where: { id: 1 },
           attributes: [],
         },
       ],

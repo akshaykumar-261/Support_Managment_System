@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import fs from "fs";
 import { authMessage, userMessage } from "../helper/commanMessage.js";
 import { sendResponse } from "../helper/responseHandler.js";
-import { STATUS_CODE } from "../helper/statusCode.js";
+import { OTP_TYPE, STATUS_CODE } from "../helper/statusCode.js";
 import * as commanFunction from "../../utility/commanFunction.js";
 import { ROLE } from "../helper/roleBase.js";
 import { sendForgotPasswordOtp } from "../../utility/sendForgotPasswordOtp.js";
@@ -12,6 +12,8 @@ import { sendRegistrationOtp } from "../../utility/sendRegistrationOtp.js";
 import { sendAgentCredentials } from "../../utility/sendAgentCredentials.js";
 import { getFirebaseAdmin } from "../helper/fireBaseAdmin.js";
 import { OAuth2Client } from "google-auth-library";
+import { sendPhoneOtp,verifyPhoneOtp} from "../../utility/twilioService.js";
+
 export default class userController {
   async init(db) {
     this.service = new userService();
@@ -37,7 +39,7 @@ export default class userController {
       profile_Img: profileImage,
       role_Id: ROLE.CUSTOMER,
       otp,
-      otp_type: "EMAIL_VERIFICATION",
+      otp_type: OTP_TYPE.VERIFY_EMAIL,
       is_verified: false,
       otp_expire: new Date(Date.now() + 10 * 60 * 1000),
     });
@@ -48,31 +50,23 @@ export default class userController {
   }
   async agentCreate(req, res) {
     const { email, password, name } = req.body;
-
     const exitingUser = await this.service.getByEmail(email);
-
     if (exitingUser) {
       if (req.file) {
         commanFunction.deleteFile(req.file.path);
       }
-
       return sendResponse(res, STATUS_CODE.BAD_REQUEST, userMessage.USER_EXIST);
     }
-
     let profileImage = null;
-
     if (req.file) {
       profileImage = req.file.path;
     }
-
     const user = await this.service.createUser({
       ...req.body,
       profile_Img: profileImage,
       role_Id: ROLE.AGENT,
     });
-
     await sendAgentCredentials(user.email, user.name, password);
-
     return sendResponse(res, STATUS_CODE.CREATED, userMessage.USER_CREATED, {
       user,
     });
@@ -131,12 +125,7 @@ export default class userController {
       is_active,
       search,
     });
-    const response = commanFunction.paginationsResponse({
-      count: users.count,
-      rows: users.rows,
-      page: pagignation.page,
-      limit: pagignation.limit,
-    });
+    const response = commanFunction.paginationsResponse(users);
     return sendResponse(
       res,
       STATUS_CODE.SUCCESS,
@@ -201,7 +190,7 @@ export default class userController {
       if (existingDevice) {
         const abc = await existingDevice.update({
           device_token,
-          device_type: device_type || "android",
+          device_type: device_type,
           is_login: true,
           login_time: new Date(),
           logout_time: null,
@@ -210,7 +199,7 @@ export default class userController {
         const a = await this.Models.UserDevices.create({
           user_id: userInDb.id,
           device_token,
-          device_type: device_type || "android",
+          device_type: device_type,
           device_id,
           is_login: true,
           login_time: new Date(),
@@ -317,7 +306,7 @@ export default class userController {
       );
     }
     const otp = commanFunction.generateSecureOtp(6);
-    const otpType = "FORGOT_PASSWORD";
+    const otpType = OTP_TYPE.FORGOT_PASSWORD  ;
     await this.service.saveOtp(user.id, otp, otpType);
     await sendForgotPasswordOtp(user.email, otp, user.name);
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.OTP_SENT);
@@ -368,7 +357,7 @@ export default class userController {
       otp_type: null,
     };
 
-    if (type === "EMAIL_VERIFICATION") {
+    if (type === OTP_TYPE.VERIFY_EMAIL) {
       payload.is_verified = true;
     }
 
@@ -388,7 +377,7 @@ export default class userController {
     }
     const otp = commanFunction.generateSecureOtp(6);
     await this.service.saveOtp(user.id, otp, type);
-    if (type === "EMAIL_VERIFICATION") {
+    if (type === OTP_TYPE.VERIFY_EMAIL) {
       await sendRegistrationOtp(user.email, otp, user.name);
     } else {
       await sendForgotPasswordOtp(user.email, otp, user.name);
@@ -430,7 +419,6 @@ export default class userController {
       }
 
       const isMatch = await bcrypt.compare(oldPassword, user.password);
-
       if (!isMatch) {
         return sendResponse(
           res,
@@ -440,7 +428,6 @@ export default class userController {
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-
       await this.service.updateUser(userId, {
         password: hashedPassword,
       });
@@ -489,7 +476,7 @@ export default class userController {
       let email, name, socialId;
       if (upperCaseProvider === "GOOGLE") {
         const targetClientId =
-          "363381000371-nhdehak23iguo6fnc9avu1mfrfuq03lh.apps.googleusercontent.com";
+        process.env.CLIENT_ID_SOCIAL_LOGIN;
         const client = new OAuth2Client(targetClientId);
         const ticket = await client.verifyIdToken({
           idToken: idToken,
@@ -503,7 +490,7 @@ export default class userController {
         return sendResponse(
           res,
           STATUS_CODE.BAD_REQUEST,
-          `Provider [${provider}] is not supported yet.`,
+          userMessage.PROVIDER_NOT_SUPPORT,
         );
       }
       if (!socialId || !email) {
@@ -574,4 +561,46 @@ export default class userController {
         },
       );
   }
+
+  async sendMobileOtp(req, res) {
+  const { phoneNo } = req.body;
+  const user = await this.Models.Users.findOne({
+    where: { phoneNo }
+  });
+    console.log("=======================>", user);
+  if (!user) {
+    return sendResponse(
+      res,
+      STATUS_CODE.BAD_REQUEST,
+      userMessage.USER_NOT_FOUND
+    );
+  }
+  await sendPhoneOtp(phoneNo);
+  return sendResponse(
+    res,
+    STATUS_CODE.SUCCESS,
+    "OTP sent successfully"
+  );
+  }
+
+  async verifyMobileOtp(req, res) {
+  const { phoneNo, otp } = req.body;
+  const result = await verifyPhoneOtp(phoneNo, otp);
+  if (result.status !== "approved") {
+    return sendResponse(
+      res,
+      STATUS_CODE.BAD_REQUEST,
+      "Invalid OTP"
+    );
+  }
+  await this.Models.Users.update(
+    {is_verified: true},
+    {where: { phoneNo }}
+  );
+  return sendResponse(
+    res,
+    STATUS_CODE.SUCCESS,
+    "OTP verified successfully"
+  );
+}
 }
