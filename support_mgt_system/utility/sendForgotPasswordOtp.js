@@ -1,6 +1,5 @@
 import { sendEmail } from "./emailService.js";
 import { forgotPasswordOtpTemplate } from "./forgotPasswordTemplate.js";
-
 export const sendForgotPasswordOtp = async (
   email,
   otp,

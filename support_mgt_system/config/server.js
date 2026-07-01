@@ -13,6 +13,8 @@ import ticketHistoryRoute from "../src/routes/ticketHistoryRoutes.js";
 import ticketMessageRoute from "../src/routes/ticketMessageRoutes.js";
 import departmentRoute from "../src/routes/departmentRoutes.js";
 import "./association.js";
+import "../utility/cron.js";
+import "../queue/emailWorker.js";
 const app = express();
 app.use(cors());
 app.use(express.json());

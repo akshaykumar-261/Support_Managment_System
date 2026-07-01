@@ -38,7 +38,9 @@ export const userMessage = {
   SOCIAL_AUTH_FAIL: "Social authentication failed. Email or Social ID missing.",
   DEACTIVATE: "Your account has been deactivated by admin.",
   SOCIAL_LOGIN_SUCEES: "Logged in successfully via social authentication.",
-  PROVIDER_NOT_SUPPORT:"`Provider is not supported yet."
+  PROVIDER_NOT_SUPPORT: "Provider is not supported yet",
+  SESSION_EXPIRED: "Session expired or logged out from this device",
+  INVALID_SESSION: "Invalid session or logged out from this device",
 };
 export const authMessage = {
   USER_NOT_FOUND: "this user not found or inactive",

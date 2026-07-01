@@ -46,6 +46,10 @@ const UserDeviceModel = sequelize.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    session_id: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    }
   },
   {
     timestamps: true,

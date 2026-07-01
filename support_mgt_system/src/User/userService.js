@@ -235,4 +235,90 @@ return {
     }
     return user;
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//    async findCreateSocialUser(name, email, provider, socialId) {
+//     const transaction = await this.Model.sequelize.transaction();
+
+// try {
+//   let user = await this.Model.Users.findOne({
+//     where: {
+//       social_id: socialId,
+//       provider,
+//       deletedAt: null,
+//     },
+//     transaction,
+//   });
+
+//   if (!user && email) {
+//     user = await this.Model.Users.findOne({
+//       where: {
+//         email: email.toLowerCase().trim(),
+//         deletedAt: null,
+//       },
+//       transaction,
+//     });
+//   }
+
+//   if (user) {
+//     await this.Model.Users.update(
+//       {
+//         social_id: socialId,
+//         provider,
+//         is_verified: true,
+//       },
+//       {
+//         where: { id: user.id },
+//         transaction,
+//       }
+//     );
+
+//     user = await this.Model.Users.findByPk(user.id, {
+//       transaction,
+//     });
+//   }
+
+//   if (!user) {
+//     user = await this.Model.Users.create(
+//       {
+//         name,
+//         email: email.toLowerCase().trim(),
+//         password: randomPassword,
+//         is_verified: true,
+//         role_Id: 3,
+//         provider,
+//         social_id: socialId,
+//         is_active: true,
+//       },
+//       {
+//         transaction,
+//       }
+//     );
+//   }
+
+//   await transaction.commit();
+
+//   return user;
+// } catch (error) {
+//   await transaction.rollback();
+//   throw error;
+// }
+//   }
 }

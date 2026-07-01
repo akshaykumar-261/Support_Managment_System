@@ -30,7 +30,7 @@ export default class ticketController {
       const title = "New Ticket Created!";
       const body = `${customerName} has created a new ticket #${ticketNo}.`;
       const dataPayload = {
-        ticket_id: ticket.id,
+        ticket_id: ticket.id, 
         action: "new_ticket",
       };
       adminDevices.forEach((device) => {

@@ -24,34 +24,40 @@ export const deleteFile = (filePath) => {
     fs.unlinkSync(filePath);
   }
 };
+
 export const generateTicketNumber = () => {
   const random = Math.floor(1000 + Math.random() * 9000);
   return `TKT-${Date.now()}-${random}`;
 };
-export const generateAccessToken = (user) => {
+
+export const generateAccessToken = (user,sessionId) => {
   return jwt.sign(
     {
       id: user.id,
       role_Id: user.role_Id,
       email: user.email,
+      sessionId
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: "90d",
+      expiresIn: "1m",
     },
   );
 };
-export const generateRefreshToken = (user) => {
+
+export const generateRefreshToken = (user,sessionId) => {
   return jwt.sign(
     {
       id: user.id,
+      sessionId
     },
     process.env.JWT_REFRESH_SECRET,
     {
-      expiresIn: "180d",
+      expiresIn: "5m",
     },
   );
 };
+
 export const getPagination = (page = 1, limit = 10) => {
   page = Number(page);
   limit = Number(limit);
@@ -64,6 +70,7 @@ export const getPagination = (page = 1, limit = 10) => {
     offset,
   };
 };
+
 export const paginationsResponse = (result) => {
   const { count = 0, rows = [], page = 1, limit = 10 } = result || {};
   return {

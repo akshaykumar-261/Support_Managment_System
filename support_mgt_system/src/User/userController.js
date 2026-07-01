@@ -12,8 +12,9 @@ import { sendRegistrationOtp } from "../../utility/sendRegistrationOtp.js";
 import { sendAgentCredentials } from "../../utility/sendAgentCredentials.js";
 import { getFirebaseAdmin } from "../helper/fireBaseAdmin.js";
 import { OAuth2Client } from "google-auth-library";
-import { sendPhoneOtp,verifyPhoneOtp} from "../../utility/twilioService.js";
-
+import { sendPhoneOtp, verifyPhoneOtp } from "../../utility/twilioService.js";
+import { v4 as uuid4 } from "uuid";
+import { emailQueue } from "../../queue/emailQueue.js";
 export default class userController {
   async init(db) {
     this.service = new userService();
@@ -43,7 +44,11 @@ export default class userController {
       is_verified: false,
       otp_expire: new Date(Date.now() + 10 * 60 * 1000),
     });
-    await sendRegistrationOtp(user.email, otp, user.name);
+    await emailQueue.add("registration",{
+      email: user.email,
+      otp,
+      name: user.name,
+    });
     return sendResponse(res, STATUS_CODE.CREATED, userMessage.USER_CREATED, {
       user,
     });
@@ -151,7 +156,10 @@ export default class userController {
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.USER_DELETED);
   }
   async login(req, res) {
+    const sessionId = uuid4();
+    console.log("===", sessionId);
     const { email, password, device_token, device_type, device_id } = req.body;
+
     const userInDb = await this.service.getByEmail(email);
     if (!userInDb) {
       return sendResponse(
@@ -175,11 +183,14 @@ export default class userController {
         userMessage.INVALID_CREDENTIALS,
       );
     }
-    const accessToken = commanFunction.generateAccessToken(userInDb);
-    const refreshToken = commanFunction.generateRefreshToken(userInDb);
-    await this.service.updateUser(userInDb.id, {
-      refreshToken,
-    });
+    const accessToken = commanFunction.generateAccessToken(userInDb, sessionId);
+    const refreshToken = commanFunction.generateRefreshToken(
+      userInDb,
+      sessionId,
+    );
+    // await this.service.updateUser(userInDb.id, {
+    //   refreshToken,
+    // });
     if (device_token && device_id) {
       const existingDevice = await this.Models.UserDevices.findOne({
         where: {
@@ -194,6 +205,7 @@ export default class userController {
           is_login: true,
           login_time: new Date(),
           logout_time: null,
+          session_id: sessionId,
         });
       } else {
         const a = await this.Models.UserDevices.create({
@@ -203,6 +215,7 @@ export default class userController {
           device_id,
           is_login: true,
           login_time: new Date(),
+          session_id: sessionId,
         });
       }
     }
@@ -229,42 +242,48 @@ export default class userController {
         userMessage.USER_NOT_FOUND,
       );
     }
-    if (user.refreshToken !== refreshToken) {
+    const activeDevice = await this.Models.UserDevices.findOne({
+      where: {
+        user_id: user.id,
+        session_id: decoded.sessionId,
+        is_login: true,
+      },
+    });
+    if (!activeDevice) {
       return sendResponse(
         res,
         STATUS_CODE.BAD_REQUEST,
-        userMessage.INVALID_TOKEN,
+        userMessage.INVALID_SESSION,
       );
     }
-    const newAccessToken = commanFunction.generateAccessToken(user);
+    const newAccessToken = commanFunction.generateAccessToken(
+      user,
+      decoded.sessionId,
+    );
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.NEW_TOKEN, {
-      newAccessToken,
+      accessToken: newAccessToken,
     });
   }
   async logout(req, res) {
-    try {
-      const user = req.user;
-      const { device_id } = req.body;
-      if (!user || !user.id) {
-        return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
-      }
-      await this.service.clearRefreshToken(user.id);
-      await this.Models.UserDevices.update(
-        {
-          is_login: false,
-          logout_time: new Date(),
-        },
-        {
-          where: {
-            user_id: user.id,
-            device_id,
-          },
-        },
-      );
-      return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGOUT_SUCCESS);
-    } catch (error) {
-      return sendResponse(res, STATUS_CODE.SERVER_ERROR, authMessage.INVALID);
+    const user = req.user;
+    const { device_id } = req.body;
+    if (!user || !user.id) {
+      return sendResponse(res, STATUS_CODE.BAD_REQUEST, authMessage.UN_AUTH);
     }
+    await this.service.clearRefreshToken(user.id);
+    await this.Models.UserDevices.update(
+      {
+        is_login: false,
+        logout_time: new Date(),
+      },
+      {
+        where: {
+          user_id: user.id,
+          device_id,
+        },
+      },
+    );
+    return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGOUT_SUCCESS);
   }
   async getProfile(req, res) {
     try {
@@ -306,7 +325,7 @@ export default class userController {
       );
     }
     const otp = commanFunction.generateSecureOtp(6);
-    const otpType = OTP_TYPE.FORGOT_PASSWORD  ;
+    const otpType = OTP_TYPE.FORGOT_PASSWORD;
     await this.service.saveOtp(user.id, otp, otpType);
     await sendForgotPasswordOtp(user.email, otp, user.name);
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.OTP_SENT);
@@ -463,144 +482,122 @@ export default class userController {
     return sendResponse(res, STATUS_CODE.SUCCESS, userMessage.LOGOUT_SUCCESS);
   }
   async socialLogin(req, res) {
-      const { idToken, provider, device_token, device_type, device_id } =
-        req.body;
-      if (!idToken || !provider) {
-        return sendResponse(
-          res,
-          STATUS_CODE.BAD_REQUEST,
-         userMessage.REQUIRED
-        );
-      }
-      const upperCaseProvider = provider.toUpperCase();
-      let email, name, socialId;
-      if (upperCaseProvider === "GOOGLE") {
-        const targetClientId =
-        process.env.CLIENT_ID_SOCIAL_LOGIN;
-        const client = new OAuth2Client(targetClientId);
-        const ticket = await client.verifyIdToken({
-          idToken: idToken,
-          audience: targetClientId,
-        });
-        const payload = ticket.getPayload();
-        email = payload.email;
-        name = payload.name || payload.email.split("@")[0];
-        socialId = payload.sub; 
-      } else {
-        return sendResponse(
-          res,
-          STATUS_CODE.BAD_REQUEST,
-          userMessage.PROVIDER_NOT_SUPPORT,
-        );
-      }
-      if (!socialId || !email) {
-        return sendResponse(
-          res,
-          STATUS_CODE.BAD_REQUEST,
-          userMessage.SOCIAL_AUTH_FAIL,
-        );
-      }
-      const userInDb = await this.service.findCreateSocialUser(
-        name,
-        email,
-        upperCaseProvider,
-        socialId,
-      );
-      if (!userInDb.is_active) {
-        return sendResponse(
-          res,
-          STATUS_CODE.BAD_REQUEST,
-        userMessage.DEACTIVATE,
-        );
-      }
-      const accessToken = commanFunction.generateAccessToken(userInDb);
-      const refreshToken = commanFunction.generateRefreshToken(userInDb);
-      await this.service.updateUser(userInDb.id, { refreshToken });
-      if (device_token && device_id) {
-        const existingDevice = await this.Models.UserDevices.findOne({
-          where: {
-            user_id: userInDb.id,
-            device_id: device_id,
-          },
-        });
-
-        if (existingDevice) {
-          await existingDevice.update({
-            device_token,
-            device_type: device_type,
-            is_login: true,
-            login_time: new Date(),
-            logout_time: null,
-          });
-        } else {
-          await this.Models.UserDevices.create({
-            user_id: userInDb.id,
-            device_token,
-            device_type: device_type,
-            device_id,
-            is_login: true,
-            login_time: new Date(),
-          });
-        }
-      }
-      const userResponse = userInDb.toJSON ? userInDb.toJSON() : userInDb;
-      delete userResponse.password;
-      delete userResponse.refreshToken;
-      delete userResponse.otp;
-      delete userResponse.otp_expire;
-      delete userResponse.otp_type;
-      delete userResponse.department_Id;
+    const { idToken, provider, device_token, device_type, device_id } =
+      req.body;
+    if (!idToken || !provider) {
+      return sendResponse(res, STATUS_CODE.BAD_REQUEST, userMessage.REQUIRED);
+    }
+    const upperCaseProvider = provider.toUpperCase();
+    let email, name, socialId;
+    if (upperCaseProvider === "GOOGLE") {
+      const targetClientId = process.env.CLIENT_ID_SOCIAL_LOGIN;
+      const client = new OAuth2Client(targetClientId);
+      const ticket = await client.verifyIdToken({
+        idToken: idToken,
+        audience: targetClientId,
+      });
+      const payload = ticket.getPayload();
+      email = payload.email;
+      name = payload.name || payload.email.split("@")[0];
+      socialId = payload.sub;
+    } else {
       return sendResponse(
         res,
-        STATUS_CODE.SUCCESS,
-         userMessage.SOCIAL_LOGIN_SUCEES,
-        {
-          accessToken,
-          refreshToken,
-          user: userResponse,
-        },
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.PROVIDER_NOT_SUPPORT,
       );
+    }
+    if (!socialId || !email) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.SOCIAL_AUTH_FAIL,
+      );
+    }
+    const userInDb = await this.service.findCreateSocialUser(
+      name,
+      email,
+      upperCaseProvider,
+      socialId,
+    );
+    if (!userInDb.is_active) {
+      return sendResponse(res, STATUS_CODE.BAD_REQUEST, userMessage.DEACTIVATE);
+    }
+    const accessToken = commanFunction.generateAccessToken(userInDb);
+    const refreshToken = commanFunction.generateRefreshToken(userInDb);
+    await this.service.updateUser(userInDb.id, { refreshToken });
+    if (device_token && device_id) {
+      const existingDevice = await this.Models.UserDevices.findOne({
+        where: {
+          user_id: userInDb.id,
+          device_id: device_id,
+        },
+      });
+      if (existingDevice) {
+        await existingDevice.update({
+          device_token,
+          device_type: device_type,
+          is_login: true,
+          login_time: new Date(),
+          logout_time: null,
+        });
+      } else {
+        await this.Models.UserDevices.create({
+          user_id: userInDb.id,
+          device_token,
+          device_type: device_type,
+          device_id,
+          is_login: true,
+          login_time: new Date(),
+        });
+      }
+    }
+    const userResponse = userInDb.toJSON ? userInDb.toJSON() : userInDb;
+    delete userResponse.password;
+    delete userResponse.refreshToken;
+    delete userResponse.otp;
+    delete userResponse.otp_expire;
+    delete userResponse.otp_type;
+    delete userResponse.department_Id;
+    return sendResponse(
+      res,
+      STATUS_CODE.SUCCESS,
+      userMessage.SOCIAL_LOGIN_SUCEES,
+      {
+        accessToken,
+        refreshToken,
+        user: userResponse,
+      },
+    );
   }
 
   async sendMobileOtp(req, res) {
-  const { phoneNo } = req.body;
-  const user = await this.Models.Users.findOne({
-    where: { phoneNo }
-  });
+    const { phoneNo } = req.body;
+    const user = await this.Models.Users.findOne({
+      where: { phoneNo },
+    });
     console.log("=======================>", user);
-  if (!user) {
-    return sendResponse(
-      res,
-      STATUS_CODE.BAD_REQUEST,
-      userMessage.USER_NOT_FOUND
-    );
-  }
-  await sendPhoneOtp(phoneNo);
-  return sendResponse(
-    res,
-    STATUS_CODE.SUCCESS,
-    "OTP sent successfully"
-  );
+    if (!user) {
+      return sendResponse(
+        res,
+        STATUS_CODE.BAD_REQUEST,
+        userMessage.USER_NOT_FOUND,
+      );
+    }
+    await sendPhoneOtp(phoneNo);
+    return sendResponse(res, STATUS_CODE.SUCCESS, "OTP sent successfully");
   }
 
   async verifyMobileOtp(req, res) {
-  const { phoneNo, otp } = req.body;
-  const result = await verifyPhoneOtp(phoneNo, otp);
-  if (result.status !== "approved") {
-    return sendResponse(
-      res,
-      STATUS_CODE.BAD_REQUEST,
-      "Invalid OTP"
+    const { phoneNo, otp } = req.body;
+    const result = await verifyPhoneOtp(phoneNo, otp);
+    if (result.status !== "approved") {
+      return sendResponse(res, STATUS_CODE.BAD_REQUEST, "Invalid OTP");
+    }
+    await this.Models.Users.update(
+      { is_verified: true },
+      { where: { phoneNo } },
     );
+    return sendResponse(res, STATUS_CODE.SUCCESS, "OTP verified successfully");
   }
-  await this.Models.Users.update(
-    {is_verified: true},
-    {where: { phoneNo }}
-  );
-  return sendResponse(
-    res,
-    STATUS_CODE.SUCCESS,
-    "OTP verified successfully"
-  );
-}
 }

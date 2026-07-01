@@ -54,9 +54,6 @@ const UserModel = sequelize.define(
       type: DataTypes.ENUM("EMAIL_VERIFICATION", "FORGOT_PASSWORD"),
       allowNull: true,
     },
-    refreshToken: {
-      type: DataTypes.TEXT,
-    },
     role_Id: {
       type: DataTypes.INTEGER,
     },
